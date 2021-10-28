@@ -1,0 +1,84 @@
+[http.middlewares]
+	[http.middlewares.is-whitelisted.ipWhiteList]
+		sourceRange = ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+	[http.middlewares.compress-response.compress]
+	[http.middlewares.hsts.headers]
+		stsSeconds = 7776000
+		stsIncludeSubdomains = true
+		stsPreload = true
+		forceSTSHeader = true
+	[http.middlewares.no-robots.headers.customResponseHeaders]
+		# See https://developers.google.com/search/reference/robots_meta_tag#xrobotstag
+		X-Robots-Tag = "none, noarchive, nosnippet, notranslate, noimageindex"
+	[http.middlewares.browser-compatibility.headers.customResponseHeaders]
+		X-UA-Compatible = "IE=Edge"
+	[http.middlewares.content-security-policy-strict.headers]
+		# TODO: check whether this is complete according to current standards
+		contentSecurityPolicy = "base-uri 'self'; default-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; upgrade-insecure-requests; block-all-mixed-content; frame-src 'self';"
+	[http.middlewares.content-security-policy-loose.headers]
+		# TODO: unsafe-inline and unsafe-eval are very uncool
+		# TODO: is it necessary to serve content from other domains at the same time?
+		# TODO: check whether this is complete according to current standards
+		contentSecurityPolicy = "base-uri 'self'; default-src 'self'; form-action 'self'; frame-ancestors 'none'; img-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; upgrade-insecure-requests; block-all-mixed-content; frame-src 'self';"
+	[http.middlewares.cors-basic.headers]
+		accessControlAllowCredentials = true
+		#accessControlAllowHeaders = "*"
+		# See https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
+		accessControlAllowMethods= ["GET", "HEAD", "OPTIONS", "POST", "PUT"]
+		#accessControlAllowOriginList = []
+		accessControlMaxAge = 100
+	[http.middlewares.security-headers.headers]
+		# See https://stackoverflow.com/questions/9090577/what-is-the-http-header-x-xss-protection/57802070#57802070
+		customBrowserXssValue = "0"
+		contentTypeNosniff = true
+		customFrameOptionsValue = "SAMEORIGIN"
+		# See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Feature-Policy
+		permissionsPolicy = "accelerometer 'none'; ambient-light-sensor: 'none'; autoplay 'none'; battery 'none'; camera 'none'; display-capture 'none'; document-domain 'none'; encrypted-media 'none'; execution-while-not-rendered 'none'; execution-while-out-of-viewport 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; layout-animations 'self'; legacy-image-formats 'self'; magnetometer 'none'; microphone 'none'; midi 'none'; navigation-override 'none'; oversized-images 'self'; payment 'none'; picture-in-picture 'self'; publickey-credentials-get 'self'; sync-xhr 'self'; usb 'none'; wake-lock 'none'; screen-wake-lock 'none'; web-share 'self'; xr-spatial-tracking 'none';"
+		#hostsProxyHeaders = ["X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Port", "X-Forwarded-Proto"]
+		referrerPolicy = "strict-origin-when-cross-origin"
+	[http.middlewares.security-headers.headers.customResponseHeaders]
+		Server = ""
+		X-Powered-By = ""
+		X-Principal = ""
+		X-Application-Context = ""
+	[http.middlewares.rate-limit-loose.rateLimit]
+		average = 200
+		burst = 10
+	[http.middlewares.rate-limit-basic.rateLimit]
+		average = 100
+		burst = 50
+	[http.middlewares.rate-limit-strict.rateLimit]
+		average = 50
+		burst = 20
+
+	[http.middlewares.internal-processing.chain]
+		middlewares = ["is-whitelisted", "hsts", "security-headers", "browser-compatibility", "no-robots", "compress-response"]
+	[http.middlewares.standard-processing.chain]
+		middlewares = ["hsts", "rate-limit-basic", "security-headers", "browser-compatibility", "compress-response"]
+	[http.middlewares.loose-processing.chain]
+		middlewares = ["hsts", "rate-limit-loose", "security-headers", "browser-compatibility", "compress-response"]
+
+[http.routers]
+	[http.routers.traefik-api]
+		entryPoints = ["https"]
+		rule = "Host(`traefik`, `traefik.local`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+		middlewares = ["is-whitelisted", "compress-response"]
+		service = "api@internal"
+		[http.routers.traefik-api.tls]
+			options = "intermediate@file"
+	[http.routers.traefik-metrics]
+		entryPoints = ["https"]
+		rule = "Host(`traefik`, `traefik.local`) && PathPrefix(`/metrics`)"
+		middlewares = ["is-whitelisted", "compress-response"]
+		service = "prometheus@internal"
+		[http.routers.traefik-metrics.tls]
+			options = "intermediate@file"
+
+[http.services]
+	[http.services.noop]
+		[http.services.noop.LoadBalancer]
+			[[http.services.noop.LoadBalancer.servers]]
+				url = "http://127.0.0.1"
+
+[http.serversTransports.local-ca]
+	rootCAs = ["/certs/ca.cert.pem"]

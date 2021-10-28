@@ -1,0 +1,63 @@
+[global]
+	checkNewVersion = false
+	sendAnonymousUsage = false
+
+[pilot]
+	dashboard = false
+
+[entryPoints]
+	[entryPoints.http]
+		address = ":80"
+	[entryPoints.http.http]
+		[entryPoints.http.http.redirections]
+			[entryPoints.http.http.redirections.entryPoint]
+				to = "https"
+				scheme = "https"
+				permanent = true
+	[entryPoints.https]
+		address = ":443"
+	[entryPoints.gitlab-ssh]
+		address = ":2022"
+
+[log]
+	level = "info"
+	format = "json"
+
+[accessLog]
+	format = "json"
+	[accessLog.fields]
+		defaultMode = "keep"
+		[accessLog.fields.names]
+			"ClientUsername" = "drop"
+		[accessLog.fields.headers]
+			defaultMode = "keep"
+			[accessLog.fields.headers.names]
+				"Authorization" = "drop"
+
+[api]
+	insecure = false
+	dashboard = true
+	debug = false
+
+[metrics]
+	[metrics.prometheus]
+		manualRouting = true
+
+[providers]
+	[providers.file]
+		directory = "/configuration"
+		watch = true
+	[providers.etcd]
+		endpoints = ["etcd-1.local:2379", "etcd-2.local:2379", "etcd-3.local:2379"]
+		[providers.etcd.tls]
+			ca = "/certs/ca.cert.pem"
+			caOptional = false
+			cert = "/certs/app.cert-chain.pem"
+			key = "/certs/app.key.pem"
+
+[certificatesResolvers]
+	[certificatesResolvers.letsencrypt.acme]
+	caServer = "https://acme-staging-v02.api.letsencrypt.org/directory" # TODO remove this line or change it to the production URL
+	email = "webmaster@example.org" # TODO change the e-mail address before
+	storage = "/acme/acme.json"
+	[certificatesResolvers.letsencrypt.acme.tlsChallenge]

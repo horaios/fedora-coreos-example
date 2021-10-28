@@ -1,0 +1,369 @@
+# https://coreos.github.io/butane/specs/
+variant: fcos
+version: 1.4.0
+ignition:
+  security:
+    tls:
+      certificate_authorities:
+        - local: certs/ca.cert.pem
+storage:
+  # see https://coreos.github.io/ignition/operator-notes/#filesystem-reuse-semantics
+  # whether /dev/sd* or /dev/nvme* is to be used depends on the kind of block device
+  # see https://docs.fedoraproject.org/en-US/fedora-coreos/storage/#_referencing_block_devices_from_ignition
+  disks:
+    - device: /dev/sdb
+      wipe_table: false
+      partitions:
+        - size_mib: 0
+          start_mib: 0
+          label: docker
+          should_exist: true
+          wipe_partition_entry: false
+          number: 1
+          guid: 84c9b6d3-6df7-4abb-82a5-78fc3ed9569d
+    - device: /dev/sdc
+      wipe_table: false
+      partitions:
+        - size_mib: 0
+          start_mib: 0
+          label: app
+          should_exist: true
+          wipe_partition_entry: false
+          number: 1
+          guid: d85bbbb8-b085-4d91-b584-147224d1b091
+  # see https://coreos.github.io/ignition/operator-notes/#filesystem-reuse-semantics
+  filesystems:
+    - path: /var/lib/docker
+      device: /dev/disk/by-partlabel/docker
+      format: xfs
+      wipe_filesystem: false
+      with_mount_unit: true
+    - path: /var/app/data
+      device: /dev/disk/by-partlabel/app
+      format: xfs
+      wipe_filesystem: false
+      with_mount_unit: true
+  files:
+    # See https://github.com/coreos/fcct/issues/34#issuecomment-597958199
+    # See https://github.com/coreos/fedora-coreos-tracker/issues/333
+    - path: /etc/hostname
+      mode: 420
+      overwrite: true
+      contents:
+        inline: |
+          hello-world
+    # See https://developer.gnome.org/NetworkManager/stable/nm-settings-keyfile.html
+    # See https://developer.gnome.org/NetworkManager/stable/ref-settings.html
+    # See https://www.szakmeister.net/blog/2017/jun/1/static-ip-nmcli/
+    # TODO in case you want an _additional_ static IPv4 address, uncomment the following block
+#    - path: /etc/NetworkManager/system-connections/ens192.nmconnection
+#      mode: 0600
+#      overwrite: true
+#      contents:
+#        inline: |
+#          [connection]
+#          id=ens192
+#          type=ethernet
+#          interface-name=ens192
+#          [ipv4]
+#          addresses=192.168.1.9/24
+#          method=auto
+    # See https://www.freedesktop.org/software/systemd/man/systemd-system.conf.html#DefaultEnvironment=
+    - path: /etc/systemd/system.conf.d/10-default-env.conf
+      mode: 0644
+      contents:
+        # TODO update the domains below as required
+        inline: |
+          [Manager]
+          DefaultEnvironment="etcd_client_addresses=https://etcd-1.local:2379,https://etcd-2.local:2379,https://etcd-3.local:2379"
+          DefaultEnvironment="etcd_container=gcr.io/etcd-development/etcd:v3.5.1"
+          DefaultEnvironment="app_name=hello-world"
+          DefaultEnvironment="app_container=mendhak/http-https-echo:21"
+          DefaultEnvironment="app_domain=hello-world.example.org"
+          DefaultEnvironment="app_domain_internal=hello-world.local"
+          DefaultEnvironment="traefik_container=traefik:2.5"
+    - path: /etc/zincati/config.d/51-rollout-wariness.toml
+      contents:
+        inline: |
+          [identity]
+          rollout_wariness = 0.5
+    - path: /etc/zincati/config.d/55-updates-strategy.toml
+      contents:
+        inline: |
+          [updates]
+          strategy = "periodic"
+          [[updates.periodic.window]]
+          days = [ "Sat", "Sun" ]
+          start_time = "22:30"
+          length_minutes = 60
+    - path: /etc/fedora-coreos-pinger/config.d/99-disable-reporting.toml
+      mode: 0644
+      contents:
+        inline: |
+          [reporting]
+          enabled = false
+    - path: /etc/locale.conf
+      mode: 0644
+      contents:
+        inline: |
+          LANG=en_US.UTF-8
+    - path: /etc/ssh/sshd_config.d/40-host-certificates.conf
+      mode: 0600
+      append:
+        - local: sshd_config.d/40-host-certificates.conf
+    - path: /etc/ssh/sshd_config.d/40-user-certificates.conf
+      mode: 0600
+      append:
+        - local: sshd_config.d/40-user-certificates.conf
+    - path: /etc/ssh/ssh_host_ecdsa_key
+      mode: 0600
+      append:
+        - local: ssh/ssh_host_ecdsa_key
+    - path: /etc/ssh/ssh_host_ecdsa_key-cert.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_ecdsa_key-cert.pub
+    - path: /etc/ssh/ssh_host_ecdsa_key.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_ecdsa_key.pub
+    - path: /etc/ssh/ssh_host_ed25519_key
+      mode: 0600
+      append:
+        - local: ssh/ssh_host_ed25519_key
+    - path: /etc/ssh/ssh_host_ed25519_key-cert.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_ed25519_key-cert.pub
+    - path: /etc/ssh/ssh_host_ed25519_key.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_ed25519_key.pub
+    - path: /etc/ssh/ssh_host_rsa_key
+      mode: 0600
+      append:
+        - local: ssh/ssh_host_rsa_key
+    - path: /etc/ssh/ssh_host_rsa_key-cert.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_rsa_key-cert.pub
+    - path: /etc/ssh/ssh_host_rsa_key.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_rsa_key.pub
+    # https://docs.fedoraproject.org/en-US/quick-docs/using-shared-system-certificates/
+    # https://docs.fedoraproject.org/en-US/fedora-coreos/storage/#_immutable_read_only_usr
+    - path: /etc/pki/ca-trust/source/anchors/root.local.pem  # TODO change name if desired
+      mode: 0644
+      overwrite: true
+      contents:
+        local: certs/ca.cert.pem
+    - path: /var/home/core/.bashrc.d/extra.sh
+      mode: 0644
+      append:
+        - local: user/bash_extra.sh
+    - path: /var/home/core/.inputrc
+      mode: 0644
+      contents:
+        local: user/.inputrc
+    - path: /var/home/core/.virc
+      mode: 0644
+      contents:
+        local: user/.virc
+    - path: /var/app/data/certs/ca.cert.pem
+      mode: 0644
+      overwrite: true
+      contents:
+        local: certs/ca.cert.pem
+    - path: /var/app/data/certs/app.cert.pem
+      mode: 0644
+      overwrite: true
+      contents:
+        local: certs/app.cert.pem
+    - path: /var/app/data/certs/app.cert-chain.pem
+      mode: 0644
+      overwrite: true
+      contents:
+        local: certs/app.cert-chain.pem
+    - path: /var/app/data/certs/app.key.pem
+      mode: 0644
+      overwrite: true
+      contents:
+        local: certs/app.key.pem
+    - path: /var/app/traefik/configuration/certs.toml
+      mode: 0644
+      overwrite: true
+      contents:
+        local: traefik/certs.toml
+    - path: /var/app/traefik/configuration/http.toml
+      mode: 0644
+      overwrite: true
+      contents:
+        local: traefik/http.toml
+    - path: /var/app/traefik/configuration/tcp.toml
+      mode: 0644
+      overwrite: true
+      contents:
+        local: traefik/tcp.toml
+    - path: /var/app/traefik/configuration/tls.toml
+      mode: 0644
+      overwrite: true
+      contents:
+        local: traefik/tls.toml
+    - path: /var/app/traefik/configuration/app.toml
+      mode: 0644
+      overwrite: true
+      contents:
+        local: traefik/app.toml
+    - path: /var/app/traefik/traefik.toml
+      mode: 0644
+      overwrite: true
+      contents:
+        local: traefik/traefik.toml
+systemd:
+  units:
+    # See https://docs.fedoraproject.org/en-US/fedora-coreos/os-extensions/
+    - name: rpm-ostree-install-tools.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Layer additional tools with rpm-ostree
+        # We run after `systemd-machine-id-commit.service` to ensure that
+        # `ConditionFirstBoot=true` services won't rerun on the next boot.
+        After=systemd-machine-id-commit.service
+        After=network-online.target
+        # We run before `zincati.service` to avoid conflicting rpm-ostree
+        # transactions.
+        Before=zincati.service
+        ConditionPathExists=!/var/lib/%N.stamp
+        [Install]
+        WantedBy=multi-user.target
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=rpm-ostree install --allow-inactive open-vm-tools langpacks-en
+        ExecStart=/bin/touch /var/lib/%N.stamp
+        ExecStart=/bin/systemctl --no-block reboot
+    - name: docker-cleanup.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Clean up Docker
+        Documentation=https://docs.docker.com/engine/reference/commandline/system_prune/
+        Requires=network-online.target docker.service
+        After=network-online.target docker.service
+        [Install]
+        WantedBy=multi-user.target
+        [Service]
+        Type=oneshot
+        ExecStart=-/bin/docker system prune -f
+    - name: docker-app-network.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Docker application network
+        Documentation=https://docs.docker.com/engine/reference/commandline/network_create/
+        Requires=docker.service docker-cleanup.service
+        After=docker.service docker-cleanup.service
+        ConditionPathExists=/var/lib/rpm-ostree-install-tools.stamp
+        [Install]
+        WantedBy=multi-user.target
+        RequiredBy=docker-hello-world.service
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "app-default-net"
+    - name: docker-traefik.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=traefik in Docker for TLS termination
+        Documentation=https://docs.traefik.io
+        Requires=docker.service docker-hello-world.service
+        After=docker.service docker-hello-world.service
+        [Install]
+        WantedBy=multi-user.target docker-hello-world.service
+        [Service]
+        TimeoutStartSec=600
+        ExecStartPre=-/bin/docker pull "${traefik_container}"
+        ExecStartPre=-/bin/docker stop %N
+        ExecStartPre=-/bin/docker rm %N
+        ExecStart=/bin/docker run --name %N --hostname %N \
+          --network "app-default-net" \
+          --log-driver=json-file \
+          --log-opt max-size=20m \
+          --log-opt max-file=7 \
+          -p 443:443 \
+          -v /var/app/traefik/traefik.toml:/etc/traefik/traefik.toml:Z \
+          -v /var/app/traefik/configuration:/configuration:z \
+          -v /var/app/data/certs:/certs:z \
+          "${traefik_container}"
+        ExecStop=/bin/docker stop %N
+    - name: docker-hello-world.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=hello-world in Docker
+        Documentation=https://hub.docker.com/r/mendhak/http-https-echo
+        Requires=docker.service docker-app-network.service
+        After=docker.service docker-app-network.service
+        [Install]
+        WantedBy=multi-user.target
+        [Service]
+        TimeoutStartSec=600
+        ExecStartPre=/bin/docker pull "${etcd_container}"
+        ExecStartPre=/bin/docker pull "${app_container}"
+        ExecStartPre=-/bin/docker stop %N
+        ExecStartPre=-/bin/docker rm %N
+        ExecStartPre=/bin/docker run --rm --name etcdctl \
+          --log-driver=json-file \
+          --log-opt max-size=20m \
+          --log-opt max-file=7 \
+          -v /var/app/data/certs:/certs:z \
+          -e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
+          -e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \
+          -e ETCDCTL_CACERT="/certs/ca.cert.pem" \
+          -e ETCDCTL_CERT="/certs/app.cert-chain.pem" \
+          -e ETCDCTL_KEY="/certs/app.key.pem" \
+          "${etcd_container}" \
+          sh -c " \
+          etcdctl put traefik/http/routers/${app_name}/entrypoints/0 'https' && \
+          etcdctl put traefik/http/routers/${app_name}/middlewares/0 'internal-processing@file' && \
+          etcdctl put traefik/http/routers/${app_name}/middlewares/1 'no-robots@file' && \
+          etcdctl put traefik/http/routers/${app_name}/rule 'Host(`${app_domain}`)' && \
+          etcdctl put traefik/http/routers/${app_name}/service '${app_name}' && \
+          etcdctl put traefik/http/routers/${app_name}/tls/options 'intermediate@file' && \
+          etcdctl put traefik/http/services/${app_name}/loadbalancer/healthcheck/path '/' && \
+          etcdctl put traefik/http/services/${app_name}/loadbalancer/healthcheck/interval '10s' && \
+          etcdctl put traefik/http/services/${app_name}/loadbalancer/healthcheck/timeout '3s' && \
+          etcdctl put traefik/http/services/${app_name}/loadbalancer/healthcheck/followRedirects 'false' && \
+          etcdctl put traefik/http/services/${app_name}/loadbalancer/servers/0/url 'https://${app_domain_internal}:443' && \
+          etcdctl put traefik/http/services/${app_name}/loadbalancer/serversTransport 'local-ca@file' \
+          "
+        ExecStart=/bin/docker run --name %N --hostname %N \
+          --network "app-default-net" \
+          --log-driver=json-file \
+          --log-opt max-size=20m \
+          --log-opt max-file=7 \
+          "${app_container}"
+        ExecStopPre=/bin/docker run --rm --name etcdctl \
+          --log-driver=json-file \
+          --log-opt max-size=20m \
+          --log-opt max-file=7 \
+          -v /var/app/data/certs:/certs:z \
+          -e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
+          -e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \
+          -e ETCDCTL_CACERT="/certs/ca.cert.pem" \
+          -e ETCDCTL_CERT="/certs/app.cert-chain.pem" \
+          -e ETCDCTL_KEY="/certs/app.key.pem" \
+          "${etcd_container}" \
+          sh -c " \
+          etcdctl del --prefix traefik/http/routers/${app_name} && \
+          etcdctl del --prefix traefik/http/services/${app_name} \
+          "
+        ExecStop=/bin/docker stop %N
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys:
+        - insert your public key here # TODO insert your public SSH key here

@@ -1,0 +1,33 @@
+[http.middlewares]
+	[http.middlewares.redirect-to-https.redirectScheme]
+		scheme = "https"
+		permanent = true
+		port = 443
+	[http.middlewares.is-whitelisted.ipWhiteList]
+		sourceRange = ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+	[http.middlewares.compress-response.compress]
+
+# May conflict with downstream service
+# See https://github.com/traefik/traefik/issues/898
+# See https://github.com/traefik/traefik/issues/5853
+#[http.routers]
+#	[http.routers.traefik-api]
+#		entryPoints = ["https"]
+#		rule = "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
+#		middlewares = ["is-whitelisted", "compress-response"]
+#		service = "api@internal"
+#		[http.routers.traefik-api.tls]
+#			options = "intermediate@file"
+#	[http.routers.traefik-metrics]
+#		entryPoints = ["https"]
+#		rule = "PathPrefix(`/metrics`)"
+#		middlewares = ["is-whitelisted", "compress-response"]
+#		service = "prometheus@internal"
+#		[http.routers.traefik-metrics.tls]
+#			options = "intermediate@file"
+
+[http.services]
+	[http.services.noop]
+		[http.services.noop.LoadBalancer]
+			[[http.services.noop.LoadBalancer.servers]]
+				url = "http://127.0.0.1"

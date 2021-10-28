@@ -1,0 +1,9 @@
+{
+  "cpu_cores": 4,
+  "ram": 8192,
+  "disks": {
+    "root": "20GB",
+    "docker": "20GB",
+    "data": "100GB"
+  }
+}

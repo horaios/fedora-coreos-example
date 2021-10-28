@@ -1,0 +1,20 @@
+# EditorConfig is awesome: http://EditorConfig.org
+
+# top-most EditorConfig file
+root = true
+
+# Unix-style newlines with a newline ending every file
+[*]
+end_of_line = lf
+insert_final_newline = true
+charset = utf-8
+indent_style = tab # https://old.reddit.com/r/javascript/comments/c8drjo/nobody_talks_about_the_real_reason_to_use_tabs/
+indent_size = tab
+trim_trailing_whitespace = true
+
+[*.secret]
+insert_final_newline = false
+
+[*.{bu, fcc, ign, json, sh, yml, yaml}]
+indent_style = space
+indent_size = 2

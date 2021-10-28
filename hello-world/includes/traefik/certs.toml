@@ -1,0 +1,8 @@
+[serversTransport]
+	rootCAs = ["/certs/ca.cert.pem"]
+
+[tls.stores]
+	[tls.stores.default]
+		[tls.stores.default.defaultCertificate]
+			certFile = "/certs/app.cert-chain.pem"
+			keyFile = "/certs/app.key.pem"

@@ -1,0 +1,19 @@
+[http.routers]
+	[http.routers.app]
+		entryPoints = ["https"]
+		rule = "HostRegexp(`{host:.+}`)"
+		middlewares = ["is-whitelisted", "compress-response"]
+		service = "app"
+		[http.routers.app.tls]
+			options = "intermediate@file"
+
+[http.services]
+	[http.services.app]
+		[http.services.app.LoadBalancer]
+			[http.services.app.loadBalancer.healthCheck]
+				path = "/" # TODO change according to downstream service API
+				interval = '10s'
+				timeout = '3s'
+				followRedirects = false
+			[[http.services.app.LoadBalancer.servers]]
+				url = "http://docker-hello-world:8080" # TODO change according to downstream service name

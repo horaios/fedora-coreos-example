@@ -1,0 +1,38 @@
+[global]
+	checkNewVersion = false
+	sendAnonymousUsage = false
+
+[pilot]
+	dashboard = false
+
+[entryPoints]
+	[entryPoints.https]
+		address = ":443"
+
+[log]
+	level = "info"
+	format = "json"
+
+[accessLog]
+	format = "json"
+	[accessLog.fields]
+		defaultMode = "keep"
+		[accessLog.fields.names]
+			"ClientUsername" = "drop"
+		[accessLog.fields.headers]
+			defaultMode = "keep"
+			[accessLog.fields.headers.names]
+				"Authorization" = "drop"
+
+[api]
+	insecure = false
+	dashboard = false
+	debug = false
+
+[metrics]
+	[metrics.prometheus]
+		manualRouting = true
+
+[providers.file]
+	directory = "/configuration"
+	watch = true
