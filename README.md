@@ -6,8 +6,8 @@ configurations and scripts that help deploy them on VMWare vSphere (or Fusion).
 The base setup contains an [etcd](https://etcd.io) cluster consisting of three members, a [Traefik](https://traefik.io)
 edge router, and a [hello-world application](https://github.com/mendhak/docker-http-https-echo) each in their own Fedora
 CoreOS VM. Service 'discovery' is done by pushing service information into the etcd cluster on VM startup which is then
-read by Traefik. On VM shutdown the information [is deleted](#open_issue_id) from etcd and Traefik stops serving traffic
-there.
+read by Traefik. On VM shutdown the information [is deleted](https://github.com/horaios/fedora-coreos-example/issues/1)
+from etcd and Traefik stops serving traffic there.
 
 Each VM will be provisioned with [SSH certificates](https://smallstep.com/blog/use-ssh-certificates/) by default, the
 configuration can be extended with client certificates as
