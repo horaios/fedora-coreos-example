@@ -1,3 +1,4 @@
+# shellcheck disable=SC2148
 # Case-insensitive globbing (used in pathname expansion)
 shopt -s nocaseglob
 
