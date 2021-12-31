@@ -31,6 +31,27 @@ The shell script template used for the generator scripts is the MIT licensed
 A way to provide TLS and SSH certificates. You can use [simple-ca](https://github.com/horaios/simple-file-ca) to get
 started quickly and without modifying the scripts if you simply want to get started quickly and play around.
 
+
+GNU compatible `base64` is required, for example available via:
+
+```bash
+$ brew info coreutils
+# Documentation and Caveats...
+If you need to use these commands with their normal names, you can add a "gnubin" directory to your PATH with:
+  PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
+# ...
+# This means that base64 should be available at /usr/local/opt/coreutils/libexec/gnubin/base64
+$ /usr/local/opt/coreutils/libexec/gnubin/base64 --version
+base64 (GNU coreutils) 9.0
+```
+
+If you don't want to put this permanently onto your path you can simply prefix any `./scripts/*.sh` invocations with
+`PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"`, i.e.:
+
+```bash
+$ PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" ./deploy.sh
+```
+
 ### Windows
 
 - For a Bash based environment it is easiest to use [Git for Windows](https://gitforwindows.org)
