@@ -146,7 +146,7 @@ parse_params() {
       shift
       ;;
     -l | --library)
-      name="${2-}"
+      library="${2-}"
       shift
       ;;
     -n | --name)
