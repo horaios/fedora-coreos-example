@@ -17,18 +17,69 @@ This script deploys a FCOS VM to a VMWare Fusion instance using the provided Ign
 Available options:
 -h, --help             Print this help and exit
 -v, --verbose          Print script debug info
+-b, --bu-file          Path to the bu config to use for provisioning
 -d, --download-dir     Path where CoreOS (images and files) should be stored locally
--i, --ign-file         Path to Ignition Config
--m, --vm-dir           Path to the VM storage
+-e, --debug            Enable extra debugging of the VM via Serial Connection logging
+-g, --host-signing-key Path to the SSH Host Signing Key
+-i, --host-signing-pw  Password for the SSH Host Signing Key
+-l, --library          VMWare Fusion Library name to store the VM in
 -n, --name             Name of the VM to create
+-o, --deploy           Whether to deploy the VM (requires GOVC_URL, GOVC_USERNAME, GOVC_PASSWORD to be set)
+-p, --prefix           Prefix for the VM names for easier identification in VMWare Fusion, defaults to 'fcos-'
 -s, --stream           CoreOS stream, defaults to 'stable'
+-t, --tls-certs        Path to the Certificate Authority from where to copy the '$name.cert.pem' and '$name.key.pem' files
+-u, --user-signing-key Path to the SSH User Signing Key
 EOF
   exit
 }
 
 cleanup() {
   trap - SIGINT SIGTERM ERR EXIT
-  # script cleanup here
+
+  if [[ -n "${buInc}" ]]; then
+    if [[ -n "${commonConfig}" ]]; then
+      for tmp in "${commonConfig}"/*; do
+        tmpName=$(realpath --canonicalize-missing "${buInc}/$(basename "${tmp}")")
+        message=$(printf "Removing temporary common config from '%s'\n" "${tmpName}")
+        [[ $verbose == 1 ]] && msg "${message}"
+        rm -rf "${tmpName}"
+      done
+    fi
+    for tmp in "${buInc}/ssh/ssh_host_"*; do
+      tmpName=$(realpath --canonicalize-missing "${buInc}/ssh/$(basename "${tmp}")")
+      message=$(printf "Removing temporary SSH host key from '%s'\n" "${tmpName}")
+      [[ $verbose == 1 ]] && msg "${message}"
+      rm -f "${tmpName}"
+    done
+    if [[ -n "${userSigningKey-}" ]] && [[ -f "${buInc}/ssh/${userSigningKey}" ]]; then
+      message=$(printf "Removing temporary SSH user signing certificate from '%s'\n" "${buInc}/ssh/${userSigningKey}")
+      [[ $verbose == 1 ]] && msg "${message}"
+      rm -f "${buInc}/ssh/${userSigningKey}"
+    fi
+
+    if [[ -n "${name}" ]]; then
+      for tmp in "${buInc}/certs/app"*; do
+        tmpName=$(realpath --canonicalize-missing "${buInc}/certs/$(basename "${tmp}")")
+        message=$(printf "Removing temporary TLS certificate from '%s'\n" "${tmpName}")
+        [[ $verbose == 1 ]] && msg "${message}"
+        rm -f "${tmpName}"
+      done
+      staticCerts=("${buInc}/certs/ca.cert.pem" "${buInc}/certs/ca-chain.cert.pem" "${buInc}/certs/ia.cert.pem")
+      for tmp in "${staticCerts[@]}"; do
+        if [[ -f "${tmp}" ]]; then
+          tmpName=$(realpath --canonicalize-missing "${buInc}/certs/$(basename "${tmp}")")
+          message=$(printf "Removing temporary TLS certificate from '%s'\n" "${tmpName}")
+          [[ $verbose == 1 ]] && msg "${message}"
+          rm -f "${tmpName}"
+        fi
+      done
+    fi
+  fi
+  if [[ -n "${ign_config_file}" ]]; then
+    message=$(printf "Removing Ignition file from '%s'\n" "${ign_config_file}")
+    [[ $verbose == 1 ]] && msg "${message}"
+    rm -f "${ign_config_file}"
+  fi
 }
 
 setup_colors() {
@@ -53,35 +104,66 @@ die() {
 
 parse_params() {
   # default values of variables set from params
+  bu=''
+  deploy=0
   download=''
-  ign=''
+  debug=0
+  hostSigningKey=''
+  hostSigningPw="${SIMPLE_CA_SSH_PASSWORD-}"
+  library=$(realpath --canonicalize-missing "${HOME}/Virtual Machines.localized")
   name=''
+  prefix='fcos-'
   stream='stable'
-  vm=''
+  tlsCerts=''
+  userSigningKey=''
+  verbose=0
 
   while :; do
     case "${1-}" in
     -h | --help) usage ;;
-    -v | --verbose) set -x ;;
+    -v | --verbose)
+      set -x
+      verbose=1
+      ;;
     --no-color) NO_COLOR=1 ;;
+    -b | --bu-file)
+      bu="${2-}"
+      shift
+      ;;
     -d | --download-dir)
       download="${2-}"
       shift
       ;;
-    -i | --ign-file)
-      ign="${2-}"
+    -e | --debug)
+      debug=1
+      ;;
+    -g | --host-signing-key)
+      hostSigningKey="${2-}"
       shift
       ;;
-    -m | --vm-dir)
-      vm="${2-}"
+    -i | --host-signing-pw)
+      hostSigningPw="${2-}"
+      shift
+      ;;
+    -l | --library)
+      library="${2-}"
       shift
       ;;
     -n | --name)
       name="${2-}"
       shift
       ;;
+    -o | --deploy) deploy=1 ;;
     -s | --stream)
       stream="${2-}"
+      shift
+      ;;
+    -t | --tls-certs)
+      tlsCerts="${2-}"
+      shift
+      ;;
+    -u | --user-signing-key)
+      userSigningKey="${2-}"
       shift
       ;;
     -?*) die "Unknown option: $1" ;;
@@ -92,10 +174,9 @@ parse_params() {
 
   # check required params and arguments
   [[ -z "${download-}" ]] && die "Missing required parameter: download-dir"
-  [[ -z "${ign-}" ]] && die "Missing required parameter: ign-file"
-  [[ -z "${vm-}" ]] && die "Missing required parameter: vm-dir"
+  [[ -z "${bu-}" ]] && die "Missing required parameter: bu-file"
   [[ -z "${name-}" ]] && die "Missing required parameter: name"
-
+  [[ -z "${tlsCerts-}" ]] && die "Missing required parameter: tls-certs"
   return 0
 }
 
@@ -105,75 +186,152 @@ setup_colors
 # script logic here
 
 download=$(realpath --canonicalize-missing "${download}")
-ign=$(realpath --canonicalize-missing "${ign}")
-vm=$(realpath --canonicalize-missing "${vm}")
+bu=$(realpath --canonicalize-missing "${bu}")
+buDir=$(dirname "${bu}")
+buInc=$(realpath --canonicalize-missing "${buDir}/includes")
+commonConfig=$(realpath --canonicalize-missing "${buDir}/../common")
 signing_key=$(realpath --canonicalize-missing "${download}/fedora.asc")
+if [[ -n "${hostSigningKey-}" ]]; then
+  hostSigningKey=$(realpath --canonicalize-missing "${hostSigningKey}")
+  [[ ! -f "${hostSigningKey-}" ]] && die "Parameter 'host-signing-key' does not point to an existing SSH key file"
+fi
+if [[ -n "${userSigningKey-}" ]]; then
+  userSigningKey=$(realpath --canonicalize-missing "${userSigningKey}")
+  [[ ! -f "${userSigningKey-}" ]] && die "Parameter 'user-signing-key' does not point to an existing SSH key file"
+fi
+tlsCerts=$(realpath --canonicalize-missing "${tlsCerts}")
 stream_json=$(realpath --canonicalize-missing "${download}/${stream}.json")
 ova_version=''
+ign_config=''
+ign_config_file=''
 
-[[ ! -f "${ign-}" ]] && die "Parameter 'ign-file' does not point to an existing file"
+[[ ! -d "${tlsCerts-}" ]] && die "Parameter 'tls-certs' does not point to an existing location"
 
-ign_config=$(jq -c . <"${ign}" | gzip | base64 -w0)
+msg "Creating SSH Host Keys"
+ssh-keygen -t ecdsa -N "" -f "${buInc}/ssh/ssh_host_ecdsa_key" -C "${name},${name}.local"
+ssh-keygen -t ed25519 -N "" -f "${buInc}/ssh/ssh_host_ed25519_key" -C "${name},${name}.local"
+ssh-keygen -t rsa -N "" -f "${buInc}/ssh/ssh_host_rsa_key" -C "${name},${name}.local"
 
-# Init download directory if it doesn't exist
-if [[ ! -d "${download}" ]]; then
-  message=$(printf "Creating CoreOS Downloads Folder at '%s'\n" "${download}")
+if [[ -n "${hostSigningKey-}" ]]; then
+  msg "Creating signed SSH certificates"
+  if [[ -n "${hostSigningPw-}" ]]; then
+    ssh-keygen -s "${hostSigningKey}" \
+      -P "${hostSigningPw}" \
+      -I "${name} host key" \
+      -n "${name},${name}.local" \
+      -V -5m:+3650d \
+      -h \
+      "${buInc}/ssh/ssh_host_ecdsa_key" \
+      "${buInc}/ssh/ssh_host_ed25519_key" \
+      "${buInc}/ssh/ssh_host_rsa_key"
+  else
+    ssh-keygen -s "${hostSigningKey}" \
+      -I "${name} host key" \
+      -n "${name},${name}.local" \
+      -V -5m:+3650d \
+      -h \
+      "${buInc}/ssh/ssh_host_ecdsa_key" \
+      "${buInc}/ssh/ssh_host_ed25519_key" \
+      "${buInc}/ssh/ssh_host_rsa_key"
+  fi
+fi
+
+if [[ -n "${userSigningKey-}" ]]; then
+  message=$(printf "Temporarily copying SSH user signing certificate from '%s' to '%s'\n" "${userSigningKey}" "${buInc}/ssh")
   msg "${message}"
-  mkdir -p "${download}"
+  cp -f "${userSigningKey}" "${buInc}/ssh"
 fi
 
-# Download the signing key for verification purposes
-if [[ ! -f "${signing_key}" ]]; then
-  message=$(printf "Downloading the Fedora signing key to '%s'" "${signing_key}")
+message=$(printf "Temporarily copying common config from '%s' to '%s'\n" "${commonConfig}" "${buInc}")
+msg "${message}"
+cp -fr "${commonConfig}/." "${buInc}"
+
+message=$(printf "Temporarily copying certificates from '%s' to '%s'\n" "${tlsCerts}" "${buInc}")
+msg "${message}"
+cp -f "${tlsCerts}/certs/ca-chain.cert.pem" "${buInc}/certs"
+cp -f "${tlsCerts}/certs/ca.cert.pem" "${buInc}/certs"
+cp -f "${tlsCerts}/certs/ia.cert.pem" "${buInc}/certs"
+cp -f "${tlsCerts}/certs/${name}.cert.pem" "${buInc}/certs/app.cert.pem"
+cp -f "${tlsCerts}/certs/${name}.cert-chain.pem" "${buInc}/certs/app.cert-chain.pem"
+cp -f "${tlsCerts}/private/${name}.key.pem" "${buInc}/certs/app.key.pem"
+
+message=$(printf "Converting bu file '%s' to ign config\n" "${bu}")
+msg "${message}"
+ign_config=$(butane --strict --files-dir="${buInc}" "${bu}" | gzip | base64 -w0)
+ign_config_file=$(realpath --canonicalize-missing "${buDir}/${name}.ign.gzip.b64")
+echo "${ign_config}" >"${ign_config_file}"
+
+if [[ $deploy == 1 ]]; then
+  # Init download directory if it doesn't exist
+  if [[ ! -d "${download}" ]]; then
+    message=$(printf "Creating CoreOS Downloads Folder at '%s'\n" "${download}")
+    msg "${message}"
+    mkdir -p "${download}"
+  fi
+
+  # Download the signing key for verification purposes
+  if [[ ! -f "${signing_key}" ]]; then
+    message=$(printf "Downloading the Fedora signing key to '%s'" "${signing_key}")
+    msg "${message}"
+    curl -sS "https://getfedora.org/static/fedora.gpg" -o "${signing_key}"
+  fi
+
+  # Make the signing key useful for verification purposes
+  if [[ ! -f "${signing_key}.gpg" ]]; then
+    gpg --dearmor "${signing_key}"
+  fi
+
+  # Download the CoreOS VM description for the particular stream
+  message=$(printf "Downloading stream json to '%s'\n" "${stream_json}")
   msg "${message}"
-  wget -q -nv "https://getfedora.org/static/fedora.gpg" -O "${signing_key}"
-fi
+  curl -sS "https://builds.coreos.fedoraproject.org/streams/${stream}.json" -o "${stream_json}"
 
-# Make the signing key useful for verification purposes
-if [[ ! -f "${signing_key}.gpg" ]]; then
-  gpg --dearmor "${signing_key}"
-fi
+  ova_version=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.release' "${stream_json}")
+  ova_url_location=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.formats.ova.disk.location' "${stream_json}")
+  ova_url_signature=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.formats.ova.disk.signature' "${stream_json}")
+  ova_sha256=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.formats.ova.disk.sha256' "${stream_json}")
+  ova_file_path=$(realpath --canonicalize-missing "${download}/coreos-${stream}-${ova_version}.ova")
+  ova_file_signature=$(realpath --canonicalize-missing "${download}/coreos-${stream}-${ova_version}.sig")
 
-# Download the CoreOS VM description for the particular stream
-message=$(printf "Downloading stream json to '%s'\n" "${stream_json}")
-msg "${message}"
-wget -q -nv "https://builds.coreos.fedoraproject.org/streams/${stream}.json" -O "${stream_json}"
-
-ova_version=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.release' "${stream_json}")
-ova_url_location=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.formats.ova.disk.location' "${stream_json}")
-ova_url_signature=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.formats.ova.disk.signature' "${stream_json}")
-ova_sha256=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.formats.ova.disk.sha256' "${stream_json}")
-ova_file_path=$(realpath --canonicalize-missing "${download}/coreos-${stream}-${ova_version}.ova")
-ova_file_signature=$(realpath --canonicalize-missing "${download}/coreos-${stream}-${ova_version}.sig")
-message=$(printf "Latest CoreOS Version for stream '%s' is '%s'\n" "${stream}" "${ova_version}")
-msg "${message}"
-
-# Download the latest available ova file for a particular stream
-if [[ ! -f "${ova_file_path}" ]]; then
-  message=$(printf "Downloading CoreOS Version for stream '%s' with version '%s'\n" "${stream}" "${ova_version}")
+  message=$(printf "Latest CoreOS Version for stream '%s' is '%s'\n" "${stream}" "${ova_version}")
   msg "${message}"
-  wget -q -nv "${ova_url_location}" -O "${ova_file_path}"
-  wget -q -nv "${ova_url_signature}" -O "${ova_file_signature}"
+
+  # Download the latest available ova file for a particular stream
+  if [[ ! -f "${ova_file_path}" ]]; then
+    message=$(printf "Downloading CoreOS Version for stream '%s' with version '%s'\n" "${stream}" "${ova_version}")
+    msg "${message}"
+    curl -sS "${ova_url_location}" -o "${ova_file_path}"
+    curl -sS "${ova_url_signature}" -o "${ova_file_signature}"
+  fi
+
+  message=$(printf "Verifying signature for '%s'\n" "${ova_file_path}")
+  msg "${message}"
+  gpg --no-default-keyring --keyring "${signing_key}.gpg" --verify "${ova_file_signature}" "${ova_file_path}"
+
+  message=$(printf "Verifying checksum for '%s'\n" "${ova_file_path}")
+  msg "${message}"
+  message=$(printf "%s %s" "${ova_sha256}" "${ova_file_path}" | sha256sum --check)
+  msg "${message}"
+
+  msg "\nIgnition configuration transpiled and CoreOS Template downloaded; will now deploy to VMWare Fusion\n\n"
+
+  message=$(printf "Deploying '%s' to '%s'\n" "${name}" "${library}")
+  msg "${message}"
+  ovftool \
+    --powerOffTarget \
+    --overwrite \
+    --name="${prefix}${name}" \
+    --maxVirtualHardwareVersion=18 \
+    --allowExtraConfig \
+    --extraConfig:guestinfo.hostname="${name}" \
+    --extraConfig:guestinfo.ignition.config.data.encoding="gzip+base64" \
+    --extraConfig:guestinfo.ignition.config.data="${ign_config}" \
+    "${ova_file_path}" "${library}"
+
+  if [[ $debug == 1 ]]; then
+    msg "To enable VM debugging 'Add Device' and choose 'Serial Port' and select path where to save the log file."
+  fi
+  msg "To finalize the VM setup open the VMWare Fusion UI and update the desired settings."
+else
+  echo "${ign_config}" | base64 -d | gzip -d | jq >"$(realpath --canonicalize-missing "${buDir}/${name}.ign.json")"
 fi
-
-message=$(printf "Verifying signature for '%s'\n" "${ova_file_path}")
-msg "${message}"
-gpg --no-default-keyring --keyring "${signing_key}.gpg" --verify "${ova_file_signature}" "${ova_file_path}"
-
-message=$(printf "Verifying checksum for '%s'\n" "${ova_file_path}")
-msg "${message}"
-message=$(printf "%s %s" "${ova_sha256}" "${ova_file_path}" | sha256sum --check)
-msg "${message}"
-
-message=$(printf "Deploying '%s' to '%s'\n" "${name}" "${vm}")
-msg "${message}"
-ovftool \
-  --powerOffTarget \
-  --overwrite \
-  --name="${name}" \
-  --maxVirtualHardwareVersion=18 \
-  --allowExtraConfig \
-  --extraConfig:guestinfo.hostname="${name}" \
-  --extraConfig:guestinfo.ignition.config.data.encoding="gzip+base64" \
-  --extraConfig:guestinfo.ignition.config.data="${ign_config}" \
-  "${ova_file_path}" "${vm}"
