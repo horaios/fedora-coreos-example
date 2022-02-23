@@ -213,11 +213,12 @@ ign_config_file=''
 msg "Creating SSH Host Keys"
 ssh-keygen -t ecdsa -N "" -f "${buInc}/ssh/ssh_host_ecdsa_key" -C "${name},${name}.local"
 ssh-keygen -t ed25519 -N "" -f "${buInc}/ssh/ssh_host_ed25519_key" -C "${name},${name}.local"
-ssh-keygen -t rsa -N "" -f "${buInc}/ssh/ssh_host_rsa_key" -C "${name},${name}.local"
+ssh-keygen -t rsa -b 4096 -N "" -f "${buInc}/ssh/ssh_host_rsa_key" -C "${name},${name}.local"
 
 if [[ -n "${hostSigningKey-}" ]]; then
   msg "Creating signed SSH certificates"
   ssh-keygen -s "${hostSigningKey}" \
+    -t rsa-sha2-512 \
     -P "${hostSigningPw}" \
     -I "${name} host key" \
     -n "${name},${name}.local" \
