@@ -24,7 +24,7 @@ Available options:
 -i, --host-signing-pw  Password for the SSH Host Signing Key
 -l, --library          VMWare Fusion Library name to store the VM in
 -n, --name             Name of the VM to create
--o, --deploy           Whether to deploy the VM (requires GOVC_URL, GOVC_USERNAME, GOVC_PASSWORD to be set)
+-o, --deploy           Whether to deploy the VM
 -p, --prefix           Prefix for the VM names for easier identification in VMWare Fusion, defaults to 'fcos-'
 -s, --stream           CoreOS stream, defaults to 'stable'
 -t, --tls-certs        Path to the Certificate Authority from where to copy the '$name.cert.pem' and '$name.key.pem' files
