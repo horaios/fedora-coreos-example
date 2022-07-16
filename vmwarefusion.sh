@@ -36,7 +36,7 @@ EOF
 cleanup() {
   trap - SIGINT SIGTERM ERR EXIT
 
-  if [[ -n "${buInc}" ]]; then
+  if [[ -n "${buInc-}" ]]; then
     if [[ -n "${commonConfig}" ]]; then
       for tmp in "${commonConfig}"/*; do
         tmpName=$(realpath --canonicalize-missing "${buInc}/$(basename "${tmp}")")
@@ -75,7 +75,7 @@ cleanup() {
       done
     fi
   fi
-  if [[ -n "${ign_config_file}" ]]; then
+  if [[ -n "${ign_config_file-}" ]]; then
     message=$(printf "Removing Ignition file from '%s'\n" "${ign_config_file}")
     [[ $verbose == 1 ]] && msg "${message}"
     rm -f "${ign_config_file}"
