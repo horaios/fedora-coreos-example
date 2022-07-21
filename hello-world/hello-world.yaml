@@ -237,8 +237,8 @@ systemd:
         [Unit]
         Description=traefik in Docker for TLS termination
         Documentation=https://docs.traefik.io
-        Requires=docker.service docker-hello-world.service
-        After=docker.service docker-hello-world.service
+        Requires=docker.service docker-app.service
+        After=docker.service docker-app.service
         [Install]
         WantedBy=multi-user.target docker-hello-world.service
         [Service]
@@ -257,7 +257,7 @@ systemd:
           -v /var/app/data/certs:/certs:z \
           "${traefik_container}"
         ExecStop=/bin/docker stop %N
-    - name: docker-hello-world.service
+    - name: docker-app.service
       enabled: true
       contents: |
         [Unit]
