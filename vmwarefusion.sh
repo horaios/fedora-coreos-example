@@ -331,9 +331,9 @@ if [[ $deploy == 1 ]]; then
     "${ova_file_path}" "${library}"
 
   if [[ $debug == 1 ]]; then
-    msg "To enable VM debugging 'Add Device' and choose 'Serial Port' and select path where to save the log file."
+    msg "${YELLOW}To enable VM debugging 'Add Device' and choose 'Serial Port' and select path where to save the log file.${NOFORMAT}"
   fi
-  msg "To finalize the VM setup open the VMWare Fusion UI and update the desired settings."
+  msg "${GREEN}To finalize the VM setup open the VMWare Fusion UI and update the desired settings.${NOFORMAT}"
 else
   echo "${ign_config}" | base64 -d | gzip -d | jq >"$(realpath --canonicalize-missing "${buDir}/${name}.ign.json")"
 fi
