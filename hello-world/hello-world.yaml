@@ -111,6 +111,10 @@ storage:
       mode: 0600
       append:
         - local: sshd_config.d/40-host-certificates.conf
+    - path: /etc/ssh/sshd_config.d/40-ssh-audit.conf
+      mode: 0600
+      append:
+        - local: sshd_config.d/40-ssh-audit.conf
     - path: /etc/ssh/sshd_config.d/40-user-certificates.conf
       mode: 0600
       append:
