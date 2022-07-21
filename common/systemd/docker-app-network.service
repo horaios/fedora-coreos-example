@@ -1,0 +1,14 @@
+[Unit]
+Description=Docker application network
+Documentation=https://docs.docker.com/engine/reference/commandline/network_create/
+Requires=docker.service docker-cleanup.service
+After=docker.service docker-cleanup.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "${app_network}"
+
+[Install]
+WantedBy=multi-user.target
+RequiredBy=docker-app.service

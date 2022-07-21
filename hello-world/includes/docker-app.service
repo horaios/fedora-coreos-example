@@ -1,0 +1,64 @@
+[Unit]
+Description=hello-world in Docker
+Documentation=https://hub.docker.com/r/mendhak/http-https-echo
+Requires=docker.service docker-app-network.service
+After=docker.service docker-app-network.service
+
+[Service]
+Environment="app_name=hello-world"
+Environment="app_container=mendhak/http-https-echo:21"
+Environment="app_domain=hello-world.example.org"
+Environment="app_domain_internal=hello-world.local"
+TimeoutStartSec=600
+ExecStartPre=/bin/docker pull "${etcd_container}"
+ExecStartPre=/bin/docker pull "${app_container}"
+ExecStartPre=-/bin/docker stop %N
+ExecStartPre=-/bin/docker rm %N
+ExecStartPre=/bin/docker run --rm --name etcdctl \
+	--log-driver=journald \
+	--log-opt tag={{.Name}}/{{.ImageName}} \
+	-v /var/app/data/certs:/certs:z \
+	-e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
+	-e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \
+	-e ETCDCTL_CACERT="/certs/ca.cert.pem" \
+	-e ETCDCTL_CERT="/certs/app.cert-chain.pem" \
+	-e ETCDCTL_KEY="/certs/app.key.pem" \
+	"${etcd_container}" \
+	sh -c " \
+	etcdctl put traefik/http/routers/${app_name}/entrypoints/0 'https' && \
+	etcdctl put traefik/http/routers/${app_name}/middlewares/0 'internal-processing@file' && \
+	etcdctl put traefik/http/routers/${app_name}/middlewares/1 'no-robots@file' && \
+	etcdctl put traefik/http/routers/${app_name}/rule 'Host(`${app_domain}`)' && \
+	etcdctl put traefik/http/routers/${app_name}/service '${app_name}' && \
+	etcdctl put traefik/http/routers/${app_name}/tls/options 'intermediate@file' && \
+	etcdctl put traefik/http/services/${app_name}/loadbalancer/healthcheck/path '/' && \
+	etcdctl put traefik/http/services/${app_name}/loadbalancer/healthcheck/interval '10s' && \
+	etcdctl put traefik/http/services/${app_name}/loadbalancer/healthcheck/timeout '3s' && \
+	etcdctl put traefik/http/services/${app_name}/loadbalancer/healthcheck/followRedirects 'false' && \
+	etcdctl put traefik/http/services/${app_name}/loadbalancer/servers/0/url 'https://${app_domain_internal}:443' && \
+	etcdctl put traefik/http/services/${app_name}/loadbalancer/serversTransport 'local-ca@file' \
+	"
+ExecStart=/bin/docker run --name %N \
+	--hostname %N \
+	--network "${app_network}" \
+	--log-driver=journald \
+	--log-opt tag={{.Name}}/{{.ImageName}} \
+	"${app_container}"
+ExecStop=/bin/docker run --rm --name etcdctl \
+	--log-driver=journald \
+	--log-opt tag={{.Name}}/{{.ImageName}} \
+	-v /var/app/data/certs:/certs:z \
+	-e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
+	-e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \
+	-e ETCDCTL_CACERT="/certs/ca.cert.pem" \
+	-e ETCDCTL_CERT="/certs/app.cert-chain.pem" \
+	-e ETCDCTL_KEY="/certs/app.key.pem" \
+	"${etcd_container}" \
+	sh -c " \
+	etcdctl del --prefix traefik/http/routers/${app_name} && \
+	etcdctl del --prefix traefik/http/services/${app_name} \
+	"
+ExecStop=/bin/docker stop %N
+
+[Install]
+WantedBy=multi-user.target

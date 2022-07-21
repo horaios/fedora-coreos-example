@@ -1,0 +1,18 @@
+[Unit]
+Description=Layer additional tools with rpm-ostree
+Documentation=https://docs.fedoraproject.org/en-US/fedora-coreos/os-extensions/
+Wants=network-online.target
+After=network-online.target
+# We run before `zincati.service` to avoid conflicting rpm-ostree transactions.
+Before=zincati.service
+ConditionPathExists=!/var/lib/%N.stamp
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/rpm-ostree install --allow-inactive open-vm-tools langpacks-en
+ExecStart=/bin/touch /var/lib/%N.stamp
+ExecStart=/bin/systemctl --no-block reboot
+
+[Install]
+WantedBy=multi-user.target

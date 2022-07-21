@@ -1,0 +1,27 @@
+[Unit]
+Description=traefik in Docker
+Documentation=https://docs.traefik.io
+Requires=docker.service docker-app-network.service
+After=docker.service docker-app-network.service
+
+[Service]
+Environment="app_container=traefik:2.9"
+TimeoutStartSec=600
+ExecStartPre=/bin/docker pull "${app_container}"
+ExecStartPre=-/bin/docker stop %N
+ExecStartPre=-/bin/docker rm %N
+ExecStart=/bin/docker run --name %N \
+	--hostname %N \
+	--network "${app_network}" \
+	--log-driver=journald \
+	--log-opt tag={{.Name}}/{{.ImageName}} \
+	-p 80:80 -p 443:443 -p 2022:2022 \
+	-v /var/app/traefik/traefik.toml:/etc/traefik/traefik.toml:Z \
+	-v /var/app/traefik/configuration:/configuration:Z \
+	-v /var/app/data/certs:/certs:Z \
+	-v /var/app/data/traefik/acme:/acme:Z \
+	"${app_container}"
+ExecStop=/bin/docker stop %N
+
+[Install]
+WantedBy=multi-user.target

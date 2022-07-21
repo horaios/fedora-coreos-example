@@ -1,0 +1,27 @@
+[Unit]
+Description=traefik in Docker for TLS termination
+Documentation=https://docs.traefik.io
+Requires=docker.service docker-app.service
+After=docker.service docker-app.service
+
+[Service]
+Environment="app_ingress_container=traefik:2.9"
+TimeoutStartSec=600
+ExecStartPre=-/bin/docker pull "${app_ingress_container}"
+ExecStartPre=-/bin/docker stop %N
+ExecStartPre=-/bin/docker rm %N
+# https://github.com/coreos/fedora-coreos-docs/issues/130
+# https://docs.docker.com/config/containers/logging/configure/
+ExecStart=/bin/docker run --name %N --hostname %N \
+	--network "${app_network}" \
+	--log-driver=journald \
+	--log-opt tag={{.Name}}/{{.ImageName}} \
+	-p 443:443 -p 8080:8080 \
+	-v /var/app/traefik/traefik.toml:/etc/traefik/traefik.toml:Z \
+	-v /var/app/traefik/configuration:/configuration:Z \
+	-v /var/app/data/certs:/certs:z \
+	"${app_ingress_container}"
+ExecStop=/bin/docker stop %N
+
+[Install]
+WantedBy=multi-user.target docker-app.service

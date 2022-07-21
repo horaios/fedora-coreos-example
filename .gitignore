@@ -81,5 +81,8 @@ $RECYCLE.BIN/
 acme.json
 ssh_host_*
 *.secret
-common/user/id_rsa.pub
+common/user/id_ed25519
 common/user/id_ed25519.pub
+common/user/id_rsa
+common/user/id_rsa.pub
+tmp

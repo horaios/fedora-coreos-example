@@ -1,0 +1,12 @@
+[Unit]
+Description=Clean up Docker
+Documentation=https://docs.docker.com/engine/reference/commandline/system_prune/
+Requires=network-online.target docker.service
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=-/bin/docker system prune -f
+
+[Install]
+WantedBy=multi-user.target
