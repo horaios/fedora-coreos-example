@@ -158,7 +158,7 @@ storage:
         - local: ssh/ssh_host_rsa_key.pub
     # https://docs.fedoraproject.org/en-US/quick-docs/using-shared-system-certificates/
     # https://docs.fedoraproject.org/en-US/fedora-coreos/storage/#_immutable_read_only_usr
-    - path: /etc/pki/ca-trust/source/anchors/root.local.pem  # TODO change name if desired
+    - path: /etc/pki/ca-trust/source/anchors/root.local.pem
       mode: 0644
       overwrite: true
       contents:
