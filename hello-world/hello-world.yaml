@@ -68,20 +68,19 @@ storage:
 #          [ipv4]
 #          addresses=192.168.1.9/24
 #          method=auto
-    # See https://www.freedesktop.org/software/systemd/man/systemd-system.conf.html#DefaultEnvironment=
     - path: /etc/systemd/system.conf.d/10-default-env.conf
       mode: 0644
       contents:
-        # TODO update the domains below as required
-        inline: |
-          [Manager]
-          DefaultEnvironment="etcd_client_addresses=https://etcd-1.local:2379,https://etcd-2.local:2379,https://etcd-3.local:2379"
-          DefaultEnvironment="etcd_container=gcr.io/etcd-development/etcd:v3.5.1"
-          DefaultEnvironment="app_name=hello-world"
-          DefaultEnvironment="app_container=mendhak/http-https-echo:21"
-          DefaultEnvironment="app_domain=hello-world.example.org"
-          DefaultEnvironment="app_domain_internal=hello-world.local"
-          DefaultEnvironment="traefik_container=traefik:2.5"
+        local: systemd/default-environment.conf
+    - path: /etc/systemd/system.conf.d/11-default-env.conf
+      append:
+        - inline: |
+            [Manager]
+            DefaultEnvironment="app_name=hello-world"
+            DefaultEnvironment="app_container=mendhak/http-https-echo:24"
+            DefaultEnvironment="app_domain=hello-world.example.org"
+            DefaultEnvironment="app_domain_internal=hello-world.local"
+            DefaultEnvironment="traefik_container=traefik:2.8"
     - path: /etc/zincati/config.d/51-rollout-wariness.toml
       contents:
         inline: |
@@ -276,7 +275,7 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "app-default-net"
+        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "${app_network}"
     - name: docker-traefik.service
       enabled: true
       contents: |
@@ -293,7 +292,7 @@ systemd:
         ExecStartPre=-/bin/docker stop %N
         ExecStartPre=-/bin/docker rm %N
         ExecStart=/bin/docker run --name %N --hostname %N \
-          --network "app-default-net" \
+          --network "${app_network}" \
           --log-driver=json-file \
           --log-opt max-size=20m \
           --log-opt max-file=7 \
@@ -345,7 +344,7 @@ systemd:
           etcdctl put traefik/http/services/${app_name}/loadbalancer/serversTransport 'local-ca@file' \
           "
         ExecStart=/bin/docker run --name %N --hostname %N \
-          --network "app-default-net" \
+          --network "${app_network}" \
           --log-driver=json-file \
           --log-opt max-size=20m \
           --log-opt max-file=7 \

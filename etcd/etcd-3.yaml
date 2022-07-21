@@ -68,21 +68,21 @@ storage:
 #          [ipv4]
 #          addresses=192.168.1.9/24
 #          method=auto
-    # See https://www.freedesktop.org/software/systemd/man/systemd-system.conf.html#DefaultEnvironment=
-    # TODO Change the cluster token before deployment to the same static (random) value across all etcd instances
-    # TODO Replace etcd_cluster_state=new with etcd_cluster_state=existing once the cluster finished bootstrapping
     - path: /etc/systemd/system.conf.d/10-default-env.conf
       mode: 0644
       contents:
-        inline: |
-          [Manager]
-          DefaultEnvironment="etcd_peer_addresses=etcd-1=https://etcd-1.local:2380,etcd-2=https://etcd-2.local:2380,etcd-3=https://etcd-3.local:2380"
-          DefaultEnvironment="etcd_client_addresses=https://etcd-1.local:2379,https://etcd-2.local:2379,https://etcd-3.local:2379"
-          DefaultEnvironment="etcd_cluster_state=new"
-          DefaultEnvironment="etcd_cluster_token=d18b3bf9-e6eb-4e99-8cde-ad498340c8ca"
-          DefaultEnvironment="app_name=etcd-3"
-          DefaultEnvironment="app_container=gcr.io/etcd-development/etcd:v3.5.1"
-          DefaultEnvironment="app_domain_internal=etcd-3.local"
+        local: systemd/default-environment.conf
+    # TODO Change the cluster token before deployment to the same static (random) value across all etcd instances
+    # TODO Replace etcd_cluster_state=new with etcd_cluster_state=existing once the cluster finished bootstrapping
+    - path: /etc/systemd/system.conf.d/11-default-env.conf
+      append:
+        - inline: |
+            [Manager]
+            DefaultEnvironment="etcd_cluster_state=new"
+            DefaultEnvironment="etcd_cluster_token=d18b3bf9-e6eb-4e99-8cde-ad498340c8ca"
+            DefaultEnvironment="etcd_peer_addresses=etcd-1=https://etcd-1.local:2380,etcd-2=https://etcd-2.local:2380,etcd-3=https://etcd-3.local:2380"
+            DefaultEnvironment="app_name=etcd-3"
+            DefaultEnvironment="app_domain_internal=etcd-3.local"
     - path: /etc/zincati/config.d/51-rollout-wariness.toml
       contents:
         inline: |
@@ -247,7 +247,7 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "app-default-net"
+        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "${app_network}"
     - name: docker-etcd.service
       enabled: true
       contents: |
@@ -260,11 +260,11 @@ systemd:
         WantedBy=multi-user.target
         [Service]
         TimeoutStartSec=600
-        ExecStartPre=/bin/docker pull "${app_container}"
+        ExecStartPre=/bin/docker pull "${etcd_container}"
         ExecStartPre=-/bin/docker stop %N
         ExecStartPre=-/bin/docker rm %N
         ExecStart=/bin/docker run --name %N --hostname %N \
-          --network "app-default-net" \
+          --network "${app_network}" \
           --log-driver=json-file \
           --log-opt max-size=20m \
           --log-opt max-file=7 \
@@ -295,7 +295,7 @@ systemd:
           -e ETCDCTL_CACERT="/certs/ca.cert.pem" \
           -e ETCDCTL_CERT="/certs/app.cert-chain.pem" \
           -e ETCDCTL_KEY="/certs/app.key.pem" \
-          "${app_container}" \
+          "${etcd_container}" \
           /usr/local/bin/etcd
         ExecStop=/bin/docker stop %N
 passwd:
