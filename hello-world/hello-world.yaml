@@ -304,7 +304,7 @@ systemd:
           --log-opt max-size=20m \
           --log-opt max-file=7 \
           "${app_container}"
-        ExecStopPre=/bin/docker run --rm --name etcdctl \
+        ExecStop=/bin/docker run --rm --name etcdctl \
           --log-driver=json-file \
           --log-opt max-size=20m \
           --log-opt max-file=7 \
