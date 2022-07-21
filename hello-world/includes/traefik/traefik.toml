@@ -8,6 +8,8 @@
 [entryPoints]
 	[entryPoints.https]
 		address = ":443"
+	[entryPoints.statistics]
+		address = ":8080"
 
 [log]
 	level = "info"
@@ -26,7 +28,7 @@
 
 [api]
 	insecure = false
-	dashboard = false
+	dashboard = true
 	debug = false
 
 [metrics]

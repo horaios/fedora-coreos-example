@@ -251,7 +251,7 @@ systemd:
           --log-driver=json-file \
           --log-opt max-size=20m \
           --log-opt max-file=7 \
-          -p 443:443 \
+          -p 443:443 -p 8080:8080 \
           -v /var/app/traefik/traefik.toml:/etc/traefik/traefik.toml:Z \
           -v /var/app/traefik/configuration:/configuration:z \
           -v /var/app/data/certs:/certs:z \
