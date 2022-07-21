@@ -169,61 +169,11 @@ storage:
       mode: 0644
       contents:
         local: user/.virc
-    - path: /var/app/data/certs/ca.cert.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/ca.cert.pem
-    - path: /var/app/data/certs/app.cert.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.cert.pem
-    - path: /var/app/data/certs/app.cert-chain.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.cert-chain.pem
-    - path: /var/app/data/certs/app.key.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.key.pem
-    - path: /var/app/traefik/configuration/certs.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/certs.toml
-    - path: /var/app/traefik/configuration/http.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/http.toml
-    - path: /var/app/traefik/configuration/paessler.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/paessler.toml
-    - path: /var/app/traefik/configuration/confluence.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/confluence.toml
-    - path: /var/app/traefik/configuration/tcp.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/tcp.toml
-    - path: /var/app/traefik/configuration/tls.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/tls.toml
-    - path: /var/app/traefik/traefik.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/traefik.toml
+  trees:
+    - path: /var/app/data/certs
+      local: certs
+    - path: /var/app/traefik
+      local: traefik
 systemd:
   units:
     # See https://docs.fedoraproject.org/en-US/fedora-coreos/os-extensions/

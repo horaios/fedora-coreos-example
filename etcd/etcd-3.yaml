@@ -175,26 +175,9 @@ storage:
       mode: 0644
       contents:
         local: user/.virc
-    - path: /var/app/data/certs/ca.cert.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/ca.cert.pem
-    - path: /var/app/data/certs/app.cert.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.cert.pem
-    - path: /var/app/data/certs/app.cert-chain.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.cert-chain.pem
-    - path: /var/app/data/certs/app.key.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.key.pem
+  trees:
+    - path: /var/app/data/certs
+      local: certs
 systemd:
   units:
     # See https://docs.fedoraproject.org/en-US/fedora-coreos/os-extensions/
