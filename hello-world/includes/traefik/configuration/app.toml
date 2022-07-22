@@ -16,4 +16,4 @@
 				timeout = '3s'
 				followRedirects = false
 			[[http.services.app.LoadBalancer.servers]]
-				url = "http://docker-hello-world:8080" # TODO change according to downstream service name
+				url = "http://docker-app:8080" # TODO change port according to service definition

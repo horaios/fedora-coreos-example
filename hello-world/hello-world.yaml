@@ -68,20 +68,19 @@ storage:
 #          [ipv4]
 #          addresses=192.168.1.9/24
 #          method=auto
-    # See https://www.freedesktop.org/software/systemd/man/systemd-system.conf.html#DefaultEnvironment=
     - path: /etc/systemd/system.conf.d/10-default-env.conf
       mode: 0644
       contents:
-        # TODO update the domains below as required
-        inline: |
-          [Manager]
-          DefaultEnvironment="etcd_client_addresses=https://etcd-1.local:2379,https://etcd-2.local:2379,https://etcd-3.local:2379"
-          DefaultEnvironment="etcd_container=gcr.io/etcd-development/etcd:v3.5.1"
-          DefaultEnvironment="app_name=hello-world"
-          DefaultEnvironment="app_container=mendhak/http-https-echo:21"
-          DefaultEnvironment="app_domain=hello-world.example.org"
-          DefaultEnvironment="app_domain_internal=hello-world.local"
-          DefaultEnvironment="traefik_container=traefik:2.5"
+        local: systemd/default-environment.conf
+    - path: /etc/systemd/system.conf.d/11-default-env.conf
+      append:
+        - inline: |
+            [Manager]
+            DefaultEnvironment="app_name=hello-world"
+            DefaultEnvironment="app_container=mendhak/http-https-echo:24"
+            DefaultEnvironment="app_domain=hello-world.example.org"
+            DefaultEnvironment="app_domain_internal=hello-world.local"
+            DefaultEnvironment="traefik_container=traefik:2.8"
     - path: /etc/zincati/config.d/51-rollout-wariness.toml
       contents:
         inline: |
@@ -111,6 +110,10 @@ storage:
       mode: 0600
       append:
         - local: sshd_config.d/40-host-certificates.conf
+    - path: /etc/ssh/sshd_config.d/40-ssh-audit.conf
+      mode: 0600
+      append:
+        - local: sshd_config.d/40-ssh-audit.conf
     - path: /etc/ssh/sshd_config.d/40-user-certificates.conf
       mode: 0600
       append:
@@ -153,7 +156,7 @@ storage:
         - local: ssh/ssh_host_rsa_key.pub
     # https://docs.fedoraproject.org/en-US/quick-docs/using-shared-system-certificates/
     # https://docs.fedoraproject.org/en-US/fedora-coreos/storage/#_immutable_read_only_usr
-    - path: /etc/pki/ca-trust/source/anchors/root.local.pem  # TODO change name if desired
+    - path: /etc/pki/ca-trust/source/anchors/root.local.pem
       mode: 0644
       overwrite: true
       contents:
@@ -170,56 +173,11 @@ storage:
       mode: 0644
       contents:
         local: user/.virc
-    - path: /var/app/data/certs/ca.cert.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/ca.cert.pem
-    - path: /var/app/data/certs/app.cert.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.cert.pem
-    - path: /var/app/data/certs/app.cert-chain.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.cert-chain.pem
-    - path: /var/app/data/certs/app.key.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.key.pem
-    - path: /var/app/traefik/configuration/certs.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/certs.toml
-    - path: /var/app/traefik/configuration/http.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/http.toml
-    - path: /var/app/traefik/configuration/tcp.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/tcp.toml
-    - path: /var/app/traefik/configuration/tls.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/tls.toml
-    - path: /var/app/traefik/configuration/app.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/app.toml
-    - path: /var/app/traefik/traefik.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/traefik.toml
+  trees:
+    - path: /var/app/data/certs
+      local: certs
+    - path: /var/app/traefik
+      local: traefik
 systemd:
   units:
     # See https://docs.fedoraproject.org/en-US/fedora-coreos/os-extensions/
@@ -272,15 +230,15 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "app-default-net"
+        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "${app_network}"
     - name: docker-traefik.service
       enabled: true
       contents: |
         [Unit]
         Description=traefik in Docker for TLS termination
         Documentation=https://docs.traefik.io
-        Requires=docker.service docker-hello-world.service
-        After=docker.service docker-hello-world.service
+        Requires=docker.service docker-app.service
+        After=docker.service docker-app.service
         [Install]
         WantedBy=multi-user.target docker-hello-world.service
         [Service]
@@ -289,17 +247,16 @@ systemd:
         ExecStartPre=-/bin/docker stop %N
         ExecStartPre=-/bin/docker rm %N
         ExecStart=/bin/docker run --name %N --hostname %N \
-          --network "app-default-net" \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
-          -p 443:443 \
+          --network "${app_network}" \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
+          -p 443:443 -p 8080:8080 \
           -v /var/app/traefik/traefik.toml:/etc/traefik/traefik.toml:Z \
           -v /var/app/traefik/configuration:/configuration:z \
           -v /var/app/data/certs:/certs:z \
           "${traefik_container}"
         ExecStop=/bin/docker stop %N
-    - name: docker-hello-world.service
+    - name: docker-app.service
       enabled: true
       contents: |
         [Unit]
@@ -316,9 +273,8 @@ systemd:
         ExecStartPre=-/bin/docker stop %N
         ExecStartPre=-/bin/docker rm %N
         ExecStartPre=/bin/docker run --rm --name etcdctl \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           -v /var/app/data/certs:/certs:z \
           -e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
           -e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \
@@ -341,15 +297,13 @@ systemd:
           etcdctl put traefik/http/services/${app_name}/loadbalancer/serversTransport 'local-ca@file' \
           "
         ExecStart=/bin/docker run --name %N --hostname %N \
-          --network "app-default-net" \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+          --network "${app_network}" \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           "${app_container}"
-        ExecStopPre=/bin/docker run --rm --name etcdctl \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+        ExecStop=/bin/docker run --rm --name etcdctl \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           -v /var/app/data/certs:/certs:z \
           -e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
           -e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \

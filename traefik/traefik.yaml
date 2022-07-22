@@ -68,15 +68,15 @@ storage:
 #          [ipv4]
 #          addresses=192.168.1.10/24
 #          method=auto
-    # See https://www.freedesktop.org/software/systemd/man/systemd-system.conf.html#DefaultEnvironment=
     - path: /etc/systemd/system.conf.d/10-default-env.conf
       mode: 0644
       contents:
-        inline: |
-          [Manager]
-          DefaultEnvironment="etcd_client_addresses=https://etcd-1.local:2379,https://etcd-2.local:2379,https://etcd-3.local:2379"
-          DefaultEnvironment="app_name=traefik"
-          DefaultEnvironment="app_container=traefik:2.5"
+        local: systemd/default-environment.conf
+    - path: /etc/systemd/system.conf.d/11-default-env.conf
+      append:
+        - inline: |
+            [Manager]
+            DefaultEnvironment="traefik_container=traefik:2.8"
     - path: /etc/zincati/config.d/51-rollout-wariness.toml
       contents:
         inline: |
@@ -106,6 +106,10 @@ storage:
       mode: 0600
       append:
         - local: sshd_config.d/40-host-certificates.conf
+    - path: /etc/ssh/sshd_config.d/40-ssh-audit.conf
+      mode: 0600
+      append:
+        - local: sshd_config.d/40-ssh-audit.conf
     - path: /etc/ssh/sshd_config.d/40-user-certificates.conf
       mode: 0600
       append:
@@ -148,7 +152,7 @@ storage:
         - local: ssh/ssh_host_rsa_key.pub
     # https://docs.fedoraproject.org/en-US/quick-docs/using-shared-system-certificates/
     # https://docs.fedoraproject.org/en-US/fedora-coreos/storage/#_immutable_read_only_usr
-    - path: /etc/pki/ca-trust/source/anchors/root.local.pem  # TODO change name if desired
+    - path: /etc/pki/ca-trust/source/anchors/root.local.pem
       mode: 0644
       overwrite: true
       contents:
@@ -165,61 +169,11 @@ storage:
       mode: 0644
       contents:
         local: user/.virc
-    - path: /var/app/data/certs/ca.cert.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/ca.cert.pem
-    - path: /var/app/data/certs/app.cert.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.cert.pem
-    - path: /var/app/data/certs/app.cert-chain.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.cert-chain.pem
-    - path: /var/app/data/certs/app.key.pem
-      mode: 0644
-      overwrite: true
-      contents:
-        local: certs/app.key.pem
-    - path: /var/app/traefik/configuration/certs.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/certs.toml
-    - path: /var/app/traefik/configuration/http.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/http.toml
-    - path: /var/app/traefik/configuration/paessler.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/paessler.toml
-    - path: /var/app/traefik/configuration/confluence.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/confluence.toml
-    - path: /var/app/traefik/configuration/tcp.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/tcp.toml
-    - path: /var/app/traefik/configuration/tls.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/tls.toml
-    - path: /var/app/traefik/traefik.toml
-      mode: 0644
-      overwrite: true
-      contents:
-        local: traefik/traefik.toml
+  trees:
+    - path: /var/app/data/certs
+      local: certs
+    - path: /var/app/traefik
+      local: traefik
 systemd:
   units:
     # See https://docs.fedoraproject.org/en-US/fedora-coreos/os-extensions/
@@ -272,7 +226,7 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
-        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "app-default-net"
+        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "${app_network}"
     - name: docker-traefik.service
       enabled: true
       contents: |
@@ -285,20 +239,19 @@ systemd:
         WantedBy=multi-user.target
         [Service]
         TimeoutStartSec=600
-        ExecStartPre=/bin/docker pull "${app_container}"
+        ExecStartPre=/bin/docker pull "${traefik_container}"
         ExecStartPre=-/bin/docker stop %N
         ExecStartPre=-/bin/docker rm %N
         ExecStart=/bin/docker run --name %N --hostname %N \
-          --network "app-default-net" \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+          --network "${app_network}" \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           -p 80:80 -p 443:443 -p 2022:2022 \
           -v /var/app/traefik/traefik.toml:/etc/traefik/traefik.toml:Z \
           -v /var/app/traefik/configuration:/configuration:z \
           -v /var/app/data/certs:/certs:z \
           -v /var/app/data/traefik/acme:/acme:Z \
-          "${app_container}"
+          "${traefik_container}"
         ExecStop=/bin/docker stop %N
 passwd:
   users:

@@ -12,7 +12,7 @@ indent_style = tab # https://old.reddit.com/r/javascript/comments/c8drjo/nobody_
 indent_size = tab
 trim_trailing_whitespace = true
 
-[*.secret]
+[*.{pub,secret}]
 insert_final_newline = false
 
 [*.{bu, fcc, ign, json, sh, yml, yaml}]
