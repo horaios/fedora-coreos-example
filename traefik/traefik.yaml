@@ -244,9 +244,8 @@ systemd:
         ExecStartPre=-/bin/docker rm %N
         ExecStart=/bin/docker run --name %N --hostname %N \
           --network "${app_network}" \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           -p 80:80 -p 443:443 -p 2022:2022 \
           -v /var/app/traefik/traefik.toml:/etc/traefik/traefik.toml:Z \
           -v /var/app/traefik/configuration:/configuration:z \

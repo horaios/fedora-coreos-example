@@ -248,9 +248,8 @@ systemd:
         ExecStartPre=-/bin/docker rm %N
         ExecStart=/bin/docker run --name %N --hostname %N \
           --network "${app_network}" \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           -p 443:443 -p 8080:8080 \
           -v /var/app/traefik/traefik.toml:/etc/traefik/traefik.toml:Z \
           -v /var/app/traefik/configuration:/configuration:z \
@@ -274,9 +273,8 @@ systemd:
         ExecStartPre=-/bin/docker stop %N
         ExecStartPre=-/bin/docker rm %N
         ExecStartPre=/bin/docker run --rm --name etcdctl \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           -v /var/app/data/certs:/certs:z \
           -e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
           -e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \
@@ -300,14 +298,12 @@ systemd:
           "
         ExecStart=/bin/docker run --name %N --hostname %N \
           --network "${app_network}" \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           "${app_container}"
         ExecStop=/bin/docker run --rm --name etcdctl \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           -v /var/app/data/certs:/certs:z \
           -e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
           -e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \

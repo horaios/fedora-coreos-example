@@ -248,9 +248,8 @@ systemd:
         ExecStartPre=-/bin/docker rm %N
         ExecStart=/bin/docker run --name %N --hostname %N \
           --network "${app_network}" \
-          --log-driver=json-file \
-          --log-opt max-size=20m \
-          --log-opt max-file=7 \
+          --log-driver=journald \
+          --log-opt tag={{.Name}}/{{.ImageName}} \
           -p 2379:2379 -p 2380:2380 \
           -v /var/app/data/certs:/certs:z \
           -v /var/app/data/etcd/data:/etcd-data:Z \
