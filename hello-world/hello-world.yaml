@@ -80,7 +80,7 @@ storage:
             DefaultEnvironment="app_container=mendhak/http-https-echo:24"
             DefaultEnvironment="app_domain=hello-world.example.org"
             DefaultEnvironment="app_domain_internal=hello-world.local"
-            DefaultEnvironment="traefik_container=traefik:2.8"
+            DefaultEnvironment="traefik_container=traefik:2.9"
     - path: /etc/zincati/config.d/51-rollout-wariness.toml
       contents:
         inline: |

@@ -2,9 +2,6 @@
 	checkNewVersion = false
 	sendAnonymousUsage = false
 
-[pilot]
-	dashboard = false
-
 [entryPoints]
 	[entryPoints.https]
 		address = ":443"
