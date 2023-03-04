@@ -83,9 +83,9 @@ Please note the VM configs contain references to additional disks in the `storag
 case you want to launch on VMWare Fusion (or Workstation). The OVA conversion doesn't account for them.
 
 1. Deploy the etcd cluster
-2. Once provisioning is finished and the VM is in its second boot (required for installing VMWare tools), log into each
-   member machine and change the cluster state from `new` to `existing`
-   in `/etc/systemd/system.conf.d/10-default-env.conf`
+2. Once provisioning is finished and the VM started the second time (required for installing VMWare tools), log into
+  each member machine and change the cluster state from `new` to `existing` in the systemd default environment found
+  in `/etc/systemd/system.conf.d/10-default-env.conf`
 3. In the meanwhile you can deploy Traefik
 4. The base infrastructure should now be in place to add additional services, such as the `hello-world` example.
 
