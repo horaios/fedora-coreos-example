@@ -31,7 +31,6 @@ The shell script template used for the generator scripts is the MIT licensed
 A way to provide TLS and SSH certificates. You can use [simple-ca](https://github.com/horaios/simple-file-ca) to get
 started quickly and without modifying the scripts if you simply want to get started quickly and play around.
 
-
 GNU compatible `base64` is required, for example available via:
 
 ```bash
@@ -55,16 +54,16 @@ $ PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" ./deploy.sh
 ### Windows
 
 - For a Bash based environment it is easiest to use [Git for Windows](https://gitforwindows.org)
-	- make sure to select the Windows Terminal Profile Fragment during installation for a better user experience later
-	  on
-	- also make sure to use the Windows Secure Channel library if you plan on rolling out certificates to your machine
-	  otherwise you'll have to manually patch the bundled certificate bundle
-	- make sure to use "Checkout as-is, commit as-is" to not break line endings of existing files
-	- this includes a compatible curl, GPG, and OpenSSH version by default
+  - make sure to select the Windows Terminal Profile Fragment during installation for a better user experience later
+    on
+  - also make sure to use the Windows Secure Channel library if you plan on rolling out certificates to your machine
+    otherwise you'll have to manually patch the bundled certificate bundle
+  - make sure to use "Checkout as-is, commit as-is" to not break line endings of existing files
+  - this includes a compatible curl, GPG, and OpenSSH version by default
 - Instead of using the MinTTY console installed by Git consider
   use [Windows Terminal](https://github.com/microsoft/terminal) instead for a better user experience
 - For a simple installation consider using [Scoop](https://scoop.sh)
-	- alternatively, you have to manually add _butane_, _govc_, and _jq_ to your `$PATH` environment variable
+  - alternatively, you have to manually add _butane_, _govc_, and _jq_ to your `$PATH` environment variable
 
 ## VM Configuration Contents
 
@@ -74,7 +73,7 @@ The Butane configuration files contain pieces for the following tools along side
 - [NetworkManager](https://developer.gnome.org/NetworkManager/stable/NetworkManager.html),
   [NetworkManager CLI Documentation](https://developer.gnome.org/NetworkManager/stable/nmcli.html)
 - [rpm-ostree](https://coreos.github.io/rpm-ostree/), [rpm-ostree manpage](https://www.mankier.com/1/rpm-ostree)
-- [SSH](https://docs.fedoraproject.org/en-US/fedora/rawhide/system-administrators-guide/infrastructure-services/OpenSSH/)
+- [SSH](https://docs.fedoraproject.org/en-US/fedora/rawhide/system-administrators-guide/infrastructure-services/OpenSSH/) <!-- editorconfig-checker-disable-line -->
 - [Systemd Unit](https://www.freedesktop.org/software/systemd/man/systemd.directives.html)
 - [Zincati](https://coreos.github.io/zincati/)
 
@@ -109,10 +108,10 @@ export GOVC_USERNAME='username@vsphere.local'
 export GOVC_PASSWORD='password'
 
 ./deploy.sh -s stable -d ~/Downloads/coreos/ \
--n hello-world -b ./hello-world/hello-world.yaml \
--t /Volumes/simple-ca/data/intermediate-ca-name \
--g '/Volumes/simple-ca/data/ssh-ca/ca' -i 'sshpassword' \
--o
+  -n hello-world -b ./hello-world/hello-world.yaml \
+  -t /Volumes/simple-ca/data/intermediate-ca-name \
+  -g '/Volumes/simple-ca/data/ssh-ca/ca' -i 'sshpassword' \
+  -o
 ```
 
 Don't forget to read the documentation via `--help` to see what other flags and settings can be specified.
