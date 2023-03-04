@@ -5,9 +5,9 @@ root = true
 
 # Unix-style newlines with a newline ending every file
 [*]
+charset = utf-8
 end_of_line = lf
 insert_final_newline = true
-charset = utf-8
 indent_style = tab # https://old.reddit.com/r/javascript/comments/c8drjo/nobody_talks_about_the_real_reason_to_use_tabs/
 indent_size = tab
 trim_trailing_whitespace = true
@@ -15,6 +15,9 @@ trim_trailing_whitespace = true
 [*.{pub,secret}]
 insert_final_newline = false
 
-[*.{bu, fcc, ign, json, sh, yml, yaml}]
+[*.{bu,json,md,yaml,yml}]
 indent_style = space
 indent_size = 2
+
+[*.md]
+max_line_length = 120

@@ -76,6 +76,7 @@ $RECYCLE.BIN/
 
 ### Certificates & other secrets
 *.ign.json
+*.ign.gzip.b64
 *.pem
 acme.json
 ssh_host_*
