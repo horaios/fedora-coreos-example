@@ -34,13 +34,23 @@ started quickly and without modifying the scripts if you simply want to get star
 GNU compatible `base64` is required, for example available via:
 
 ```bash
-$ brew info coreutils
+brew info coreutils
+```
+
+```output
 # Documentation and Caveats...
 If you need to use these commands with their normal names, you can add a "gnubin" directory to your PATH with:
   PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"
 # ...
-# This means that base64 should be available at /usr/local/opt/coreutils/libexec/gnubin/base64
-$ /usr/local/opt/coreutils/libexec/gnubin/base64 --version
+```
+
+This means that base64 should be available at `/usr/local/opt/coreutils/libexec/gnubin/base64`:
+
+```bash
+/usr/local/opt/coreutils/libexec/gnubin/base64 --version
+```
+
+```output
 base64 (GNU coreutils) 9.0
 ```
 
@@ -48,7 +58,7 @@ If you don't want to put this permanently onto your path you can simply prefix a
 `PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"`, i.e.:
 
 ```bash
-$ PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" ./deploy.sh
+PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" ./deploy.sh
 ```
 
 ### Windows
@@ -73,7 +83,7 @@ The Butane configuration files contain pieces for the following tools along side
 - [NetworkManager](https://developer.gnome.org/NetworkManager/stable/NetworkManager.html),
   [NetworkManager CLI Documentation](https://developer.gnome.org/NetworkManager/stable/nmcli.html)
 - [rpm-ostree](https://coreos.github.io/rpm-ostree/), [rpm-ostree manpage](https://www.mankier.com/1/rpm-ostree)
-- [SSH](https://docs.fedoraproject.org/en-US/fedora/rawhide/system-administrators-guide/infrastructure-services/OpenSSH/) <!-- editorconfig-checker-disable-line -->
+- [SSH](https://docs.fedoraproject.org/en-US/fedora/rawhide/system-administrators-guide/infrastructure-services/OpenSSH/) <!-- markdownlint-disable-line MD013 --> <!-- editorconfig-checker-disable-line -->
 - [Systemd Unit](https://www.freedesktop.org/software/systemd/man/systemd.directives.html)
 - [Zincati](https://coreos.github.io/zincati/)
 
@@ -100,7 +110,7 @@ certificates provided by a `simple-ca` based certificate authority and the afore
 certificates for the `hello-world` Butane configuration. During the script run the latest stable CoreOS version will be
 downloaded, verified, and uploaded to the default vSphere/vCenter template library. Once done, the template item will be
 deployed as `hello-world` VM with the hardware specification derived from the `resources.json` and the Ignition
-configuraton applied. In the end the VM will be powered on and start the provisioning process.
+configuration applied. In the end the VM will be powered on and start the provisioning process.
 
 ```bash
 export GOVC_URL='vcenter.example.local'
