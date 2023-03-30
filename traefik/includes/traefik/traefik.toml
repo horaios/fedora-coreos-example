@@ -54,7 +54,9 @@
 
 [certificatesResolvers]
 	[certificatesResolvers.letsencrypt.acme]
-	caServer = "https://acme-staging-v02.api.letsencrypt.org/directory" # TODO remove this line or change it to the production URL
-	email = "webmaster@example.org" # TODO change the e-mail address before
+	# TODO remove the line below or change it to the production URL
+	caServer = "https://acme-staging-v02.api.letsencrypt.org/directory"
+	# TODO change the e-mail address before deploying
+	email = "webmaster@example.org"
 	storage = "/acme/acme.json"
 	[certificatesResolvers.letsencrypt.acme.tlsChallenge]
