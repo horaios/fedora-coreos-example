@@ -275,7 +275,7 @@ if [[ $deploy == 1 ]]; then
 	if [[ ! -f "${signing_key}" ]]; then
 		message=$(printf "Downloading the Fedora signing key to '%s'" "${signing_key}")
 		msg "${message}"
-		curl -sS "https://getfedora.org/static/fedora.gpg" -o "${signing_key}"
+		curl --silent --show-error "https://getfedora.org/static/fedora.gpg" -o "${signing_key}"
 	fi
 
 	# Make the signing key useful for verification purposes
@@ -286,7 +286,7 @@ if [[ $deploy == 1 ]]; then
 	# Download the CoreOS VM description for the particular stream
 	message=$(printf "Downloading stream json to '%s'\n" "${stream_json}")
 	msg "${message}"
-	curl -sS "https://builds.coreos.fedoraproject.org/streams/${stream}.json" -o "${stream_json}"
+	curl --silent --show-error "https://builds.coreos.fedoraproject.org/streams/${stream}.json" -o "${stream_json}"
 
 	ova_version=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.release' "${stream_json}")
 	ova_url_location=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.formats.ova.disk.location' "${stream_json}")
@@ -302,8 +302,8 @@ if [[ $deploy == 1 ]]; then
 	if [[ ! -f "${ova_file_path}" ]]; then
 		message=$(printf "Downloading CoreOS Version for stream '%s' with version '%s'\n" "${stream}" "${ova_version}")
 		msg "${message}"
-		curl -sS "${ova_url_location}" -o "${ova_file_path}"
-		curl -sS "${ova_url_signature}" -o "${ova_file_signature}"
+		curl --silent --show-error "${ova_url_location}" -o "${ova_file_path}"
+		curl --silent --show-error "${ova_url_signature}" -o "${ova_file_signature}"
 	fi
 
 	message=$(printf "Verifying signature for '%s'\n" "${ova_file_path}")
