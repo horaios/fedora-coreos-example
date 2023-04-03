@@ -77,7 +77,7 @@ storage:
         - inline: |
             [Manager]
             DefaultEnvironment="app_name=hello-world"
-            DefaultEnvironment="app_container=mendhak/http-https-echo:24"
+            DefaultEnvironment="app_container=mendhak/http-https-echo:29"
             DefaultEnvironment="app_domain=hello-world.example.org"
             DefaultEnvironment="app_domain_internal=hello-world.local"
             DefaultEnvironment="traefik_container=traefik:2.9"
