@@ -58,7 +58,7 @@ If you don't want to put this permanently onto your path you can simply prefix a
 `PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH"`, i.e.:
 
 ```bash
-PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" ./deploy.sh
+PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" ./scripts/deploy.sh
 ```
 
 ### Windows
@@ -117,7 +117,7 @@ export GOVC_URL='vcenter.example.local'
 export GOVC_USERNAME='username@vsphere.local'
 export GOVC_PASSWORD='password'
 
-./deploy.sh -s stable -d ~/Downloads/coreos/ \
+./scripts/deploy.sh -s stable -d ~/Downloads/coreos/ \
   -n hello-world -b ./hello-world/hello-world.yaml \
   -t /Volumes/simple-ca/data/intermediate-ca-name \
   -g '/Volumes/simple-ca/data/ssh-ca/ca' -i 'sshpassword' \
@@ -138,11 +138,11 @@ export GOVC_URL='vcenter.example.local'
 export GOVC_USERNAME='username@vsphere.local'
 export GOVC_PASSWORD='password'
 # dry-run
-./undeploy.sh -n fcos-hello-world
+./scripts/undeploy.sh -n fcos-hello-world
 # List of resources to be removed
 #...
 # apply removal of VM but keep data volumes
-./undeploy.sh -n fcos-hello-world -a
+./scripts/undeploy.sh -n fcos-hello-world -a
 ```
 
 Running a `deploy.sh` run afterwards for `hello-world` will reattach the existing disks.
@@ -157,9 +157,9 @@ export GOVC_URL='vcenter.example.local'
 export GOVC_USERNAME='username@vsphere.local'
 export GOVC_PASSWORD='password'
 # dry-run
-./remove.sh -n fcos-hello-world
+./scripts/remove.sh -n fcos-hello-world
 # List of resources to be removed
 # ...
 # apply removal of VM and data volumes
-./remove.sh -n fcos-hello-world -a
+./scripts/remove.sh -n fcos-hello-world -a
 ```
