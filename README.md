@@ -29,7 +29,9 @@ The shell script template used for the generator scripts is the MIT licensed
 - [ssh](https://www.openssh.com) SSH implementation
 
 A way to provide TLS and SSH certificates. You can use [simple-ca](https://github.com/horaios/simple-file-ca) to get
-started quickly and without modifying the scripts if you simply want to get started quickly and play around.
+started quickly and without modifying the scripts if you simply want to play around.
+
+### macOS
 
 GNU compatible `base64` is required, for example available via:
 
@@ -69,15 +71,15 @@ PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" ./scripts/deploy.sh
   - also make sure to use the Windows Secure Channel library if you plan on rolling out certificates to your machine
     otherwise you'll have to manually patch the bundled certificate bundle
   - make sure to use "Checkout as-is, commit as-is" to not break line endings of existing files
-  - this includes a compatible curl, GPG, and OpenSSH version by default
+  - this includes a compatible curl, base64, GPG, and OpenSSH version by default
 - Instead of using the MinTTY console installed by Git consider
   use [Windows Terminal](https://github.com/microsoft/terminal) instead for a better user experience
-- For a simple installation consider using [Scoop](https://scoop.sh)
+- For a simple installation consider using [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
   - alternatively, you have to manually add _butane_, _govc_, and _jq_ to your `$PATH` environment variable
 
 ## VM Configuration Contents
 
-The Butane configuration files contain pieces for the following tools along side the actual service configurations:
+The Butane configuration files contain pieces for the following tools alongside the actual service configurations:
 
 - [Docker](https://docs.docker.com/reference/)
 - [NetworkManager](https://developer.gnome.org/NetworkManager/stable/NetworkManager.html),
@@ -89,7 +91,7 @@ The Butane configuration files contain pieces for the following tools along side
 
 ## Getting started
 
-Please note the VM configs contain references to additional disks in the `storage` section – they have to be removed in
+**Note:** the VM configs contain references to additional disks in the `storage` section – they have to be removed in
 case you want to launch on VMWare Fusion (or Workstation). The OVA conversion doesn't account for them.
 
 1. Deploy the etcd cluster
