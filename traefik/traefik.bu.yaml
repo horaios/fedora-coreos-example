@@ -1,6 +1,6 @@
 # https://coreos.github.io/butane/specs/
 variant: fcos
-version: 1.4.0
+version: 1.5.0
 ignition:
   security:
     tls:
@@ -51,7 +51,7 @@ storage:
       overwrite: true
       contents:
         inline: |
-          etcd-3
+          traefik
     # See https://developer.gnome.org/NetworkManager/stable/nm-settings-keyfile.html
     # See https://developer.gnome.org/NetworkManager/stable/ref-settings.html
     # See https://www.szakmeister.net/blog/2017/jun/1/static-ip-nmcli/
@@ -66,23 +66,17 @@ storage:
 #          type=ethernet
 #          interface-name=ens192
 #          [ipv4]
-#          addresses=192.168.1.9/24
+#          addresses=192.168.1.10/24
 #          method=auto
     - path: /etc/systemd/system.conf.d/10-default-env.conf
       mode: 0644
       contents:
         local: systemd/default-environment.conf
-    # TODO Change the cluster token before deployment to the same static (random) value across all etcd instances
-    # TODO Replace etcd_cluster_state=new with etcd_cluster_state=existing once the cluster finished bootstrapping
     - path: /etc/systemd/system.conf.d/11-default-env.conf
       append:
         - inline: |
             [Manager]
-            DefaultEnvironment="etcd_cluster_state=new"
-            DefaultEnvironment="etcd_cluster_token=d18b3bf9-e6eb-4e99-8cde-ad498340c8ca"
-            DefaultEnvironment="etcd_peer_addresses=etcd-1=https://etcd-1.local:2380,etcd-2=https://etcd-2.local:2380,etcd-3=https://etcd-3.local:2380"
-            DefaultEnvironment="app_name=etcd-3"
-            DefaultEnvironment="app_domain_internal=etcd-3.local"
+            DefaultEnvironment="traefik_container=traefik:2.9"
     - path: /etc/zincati/config.d/51-rollout-wariness.toml
       contents:
         inline: |
@@ -94,8 +88,8 @@ storage:
           [updates]
           strategy = "periodic"
           [[updates.periodic.window]]
-          days = [ "Wed", "Thu" ]
-          start_time = "21:30"
+          days = [ "Sat", "Sun" ]
+          start_time = "22:30"
           length_minutes = 60
     - path: /etc/fedora-coreos-pinger/config.d/99-disable-reporting.toml
       mode: 0644
@@ -178,110 +172,25 @@ storage:
   trees:
     - path: /var/app/data/certs
       local: certs
+    - path: /var/app/traefik
+      local: traefik
 systemd:
   units:
-    # See https://docs.fedoraproject.org/en-US/fedora-coreos/os-extensions/
     - name: rpm-ostree-install-tools.service
       enabled: true
-      contents: |
-        [Unit]
-        Description=Layer additional tools with rpm-ostree
-        # We run after `systemd-machine-id-commit.service` to ensure that
-        # `ConditionFirstBoot=true` services won't rerun on the next boot.
-        After=systemd-machine-id-commit.service
-        After=network-online.target
-        # We run before `zincati.service` to avoid conflicting rpm-ostree
-        # transactions.
-        Before=zincati.service
-        ConditionPathExists=!/var/lib/%N.stamp
-        [Install]
-        WantedBy=multi-user.target
-        [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-        ExecStart=rpm-ostree install --allow-inactive open-vm-tools langpacks-en
-        ExecStart=/bin/touch /var/lib/%N.stamp
-        ExecStart=/bin/systemctl --no-block reboot
+      contents_local: systemd/rpm-ostree-install-tools.service
     - name: docker-cleanup.service
       enabled: true
-      contents: |
-        [Unit]
-        Description=Clean up Docker
-        Documentation=https://docs.docker.com/engine/reference/commandline/system_prune/
-        Requires=network-online.target docker.service
-        After=network-online.target docker.service
-        [Install]
-        WantedBy=multi-user.target
-        [Service]
-        Type=oneshot
-        ExecStart=-/bin/docker system prune -f
+      contents_local: systemd/docker-cleanup.service
     - name: docker-app-network.service
       enabled: true
-      contents: |
-        [Unit]
-        Description=Docker application network
-        Documentation=https://docs.docker.com/engine/reference/commandline/network_create/
-        Requires=docker.service docker-cleanup.service
-        After=docker.service docker-cleanup.service
-        ConditionPathExists=/var/lib/rpm-ostree-install-tools.stamp
-        [Install]
-        WantedBy=multi-user.target
-        RequiredBy=docker-etcd.service
-        [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "${app_network}"
-    - name: docker-etcd.service
+      contents_local: systemd/docker-app-network.service
+    - name: docker-app.service
       enabled: true
-      contents: |
-        [Unit]
-        Description=etcd in Docker
-        Documentation=https://etcd.io/docs/
-        Requires=docker.service docker-app-network.service
-        After=docker.service docker-app-network.service
-        [Install]
-        WantedBy=multi-user.target
-        [Service]
-        TimeoutStartSec=600
-        ExecStartPre=/bin/docker pull "${etcd_container}"
-        ExecStartPre=-/bin/docker stop %N
-        ExecStartPre=-/bin/docker rm %N
-        ExecStart=/bin/docker run --name %N --hostname %N \
-          --network "${app_network}" \
-          --log-driver=journald \
-          --log-opt tag={{.Name}}/{{.ImageName}} \
-          -p 2379:2379 -p 2380:2380 \
-          -v /var/app/data/certs:/certs:z \
-          -v /var/app/data/etcd/data:/etcd-data:Z \
-          -e ETCD_NAME="${app_name}" \
-          -e ETCD_DATA_DIR="/etcd-data" \
-          -e ETCD_LOG_OUTPUTS="stdout" \
-          -e ETCD_LISTEN_CLIENT_URLS="https://0.0.0.0:2379" \
-          -e ETCD_ADVERTISE_CLIENT_URLS="https://${app_domain_internal}:2379" \
-          -e ETCD_LISTEN_PEER_URLS="https://0.0.0.0:2380" \
-          -e ETCD_INITIAL_ADVERTISE_PEER_URLS="https://${app_domain_internal}:2380" \
-          -e ETCD_INITIAL_CLUSTER="${etcd_peer_addresses}" \
-          -e ETCD_INITIAL_CLUSTER_STATE="${etcd_cluster_state}" \
-          -e ETCD_INITIAL_CLUSTER_TOKEN="${etcd_cluster_token}" \
-          -e ETCD_CLIENT_CERT_AUTH="true" \
-          -e ETCD_TRUSTED_CA_FILE="/certs/ca.cert.pem" \
-          -e ETCD_CERT_FILE="/certs/app.cert-chain.pem" \
-          -e ETCD_KEY_FILE="/certs/app.key.pem" \
-          -e ETCD_PEER_CLIENT_CERT_AUTH="true" \
-          -e ETCD_PEER_TRUSTED_CA_FILE="/certs/ca.cert.pem" \
-          -e ETCD_PEER_CERT_FILE="/certs/app.cert-chain.pem" \
-          -e ETCD_PEER_KEY_FILE="/certs/app.key.pem" \
-          -e ETCD_PEER_CERT_ALLOWED_CN="etcd" \
-          -e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
-          -e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \
-          -e ETCDCTL_CACERT="/certs/ca.cert.pem" \
-          -e ETCDCTL_CERT="/certs/app.cert-chain.pem" \
-          -e ETCDCTL_KEY="/certs/app.key.pem" \
-          "${etcd_container}" \
-          /usr/local/bin/etcd
-        ExecStop=/bin/docker stop %N
+      contents_local: docker-app.service
 passwd:
   users:
     - name: core
-      ssh_authorized_keys:
-        - insert your public key here # TODO insert your public SSH key here
+      ssh_authorized_keys_local:
+        - user/id_rsa.pub
+        - user/id_ed25519.pub

@@ -1,0 +1,50 @@
+[Unit]
+Description=etcd in Docker
+Documentation=https://etcd.io/docs/
+Requires=docker.service docker-app-network.service
+After=docker.service docker-app-network.service
+
+[Service]
+Environment="etcd_peer_addresses=etcd-1=https://etcd-1.local:2380,etcd-2=https://etcd-2.local:2380,etcd-3=https://etcd-3.local:2380"
+TimeoutStartSec=600
+ExecStartPre=/bin/docker pull "${etcd_container}"
+ExecStartPre=-/bin/docker stop %N
+ExecStartPre=-/bin/docker rm %N
+ExecStart=/bin/docker run --name %N \
+	--hostname %N \
+	--network "${app_network}" \
+	--log-driver=journald \
+	--log-opt tag={{.Name}}/{{.ImageName}} \
+	-p 2379:2379 -p 2380:2380 \
+	-v /var/app/data/certs:/certs:Z \
+	-v /var/app/data/etcd/data:/etcd-data:Z \
+	-e ETCD_NAME="${app_name}" \
+	-e ETCD_DATA_DIR="/etcd-data" \
+	-e ETCD_LOG_OUTPUTS="stdout" \
+	-e ETCD_LISTEN_CLIENT_URLS="https://0.0.0.0:2379" \
+	-e ETCD_ADVERTISE_CLIENT_URLS="https://${app_domain_internal}:2379" \
+	-e ETCD_LISTEN_PEER_URLS="https://0.0.0.0:2380" \
+	-e ETCD_INITIAL_ADVERTISE_PEER_URLS="https://${app_domain_internal}:2380" \
+	-e ETCD_INITIAL_CLUSTER="${etcd_peer_addresses}" \
+	-e ETCD_INITIAL_CLUSTER_STATE="${etcd_cluster_state}" \
+	-e ETCD_INITIAL_CLUSTER_TOKEN="${etcd_cluster_token}" \
+	-e ETCD_CLIENT_CERT_AUTH="true" \
+	-e ETCD_TRUSTED_CA_FILE="/certs/ca.cert.pem" \
+	-e ETCD_CERT_FILE="/certs/app.cert-chain.pem" \
+	-e ETCD_KEY_FILE="/certs/app.key.pem" \
+	-e ETCD_PEER_CLIENT_CERT_AUTH="true" \
+	-e ETCD_PEER_TRUSTED_CA_FILE="/certs/ca.cert.pem" \
+	-e ETCD_PEER_CERT_FILE="/certs/app.cert-chain.pem" \
+	-e ETCD_PEER_KEY_FILE="/certs/app.key.pem" \
+	-e ETCD_PEER_CERT_ALLOWED_CN="etcd" \
+	-e ETCDCTL_ENDPOINTS="${etcd_client_addresses}" \
+	-e ETCDCTL_INSECURE_SKIP_TLS_VERIFY="false" \
+	-e ETCDCTL_CACERT="/certs/ca.cert.pem" \
+	-e ETCDCTL_CERT="/certs/app.cert-chain.pem" \
+	-e ETCDCTL_KEY="/certs/app.key.pem" \
+	"${etcd_container}" \
+	/usr/local/bin/etcd
+ExecStop=/bin/docker stop %N
+
+[Install]
+WantedBy=multi-user.target

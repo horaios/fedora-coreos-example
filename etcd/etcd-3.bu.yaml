@@ -1,6 +1,6 @@
 # https://coreos.github.io/butane/specs/
 variant: fcos
-version: 1.4.0
+version: 1.5.0
 ignition:
   security:
     tls:
@@ -51,7 +51,7 @@ storage:
       overwrite: true
       contents:
         inline: |
-          traefik
+          etcd-3
     # See https://developer.gnome.org/NetworkManager/stable/nm-settings-keyfile.html
     # See https://developer.gnome.org/NetworkManager/stable/ref-settings.html
     # See https://www.szakmeister.net/blog/2017/jun/1/static-ip-nmcli/
@@ -66,17 +66,23 @@ storage:
 #          type=ethernet
 #          interface-name=ens192
 #          [ipv4]
-#          addresses=192.168.1.10/24
+#          addresses=192.168.1.9/24
 #          method=auto
     - path: /etc/systemd/system.conf.d/10-default-env.conf
       mode: 0644
       contents:
         local: systemd/default-environment.conf
+    # TODO Change the cluster token before deployment to the same static (random) value across all etcd instances
+    # TODO Replace etcd_cluster_state=new with etcd_cluster_state=existing once the cluster finished bootstrapping
     - path: /etc/systemd/system.conf.d/11-default-env.conf
       append:
         - inline: |
             [Manager]
-            DefaultEnvironment="traefik_container=traefik:2.9"
+            DefaultEnvironment="etcd_cluster_state=new"
+            DefaultEnvironment="etcd_cluster_token=d18b3bf9-e6eb-4e99-8cde-ad498340c8ca"
+            DefaultEnvironment="etcd_peer_addresses=etcd-1=https://etcd-1.local:2380,etcd-2=https://etcd-2.local:2380,etcd-3=https://etcd-3.local:2380"
+            DefaultEnvironment="app_name=etcd-3"
+            DefaultEnvironment="app_domain_internal=etcd-3.local"
     - path: /etc/zincati/config.d/51-rollout-wariness.toml
       contents:
         inline: |
@@ -88,8 +94,8 @@ storage:
           [updates]
           strategy = "periodic"
           [[updates.periodic.window]]
-          days = [ "Sat", "Sun" ]
-          start_time = "22:30"
+          days = [ "Wed", "Thu" ]
+          start_time = "21:30"
           length_minutes = 60
     - path: /etc/fedora-coreos-pinger/config.d/99-disable-reporting.toml
       mode: 0644
@@ -172,89 +178,22 @@ storage:
   trees:
     - path: /var/app/data/certs
       local: certs
-    - path: /var/app/traefik
-      local: traefik
 systemd:
   units:
-    # See https://docs.fedoraproject.org/en-US/fedora-coreos/os-extensions/
     - name: rpm-ostree-install-tools.service
       enabled: true
-      contents: |
-        [Unit]
-        Description=Layer additional tools with rpm-ostree
-        # We run after `systemd-machine-id-commit.service` to ensure that
-        # `ConditionFirstBoot=true` services won't rerun on the next boot.
-        After=systemd-machine-id-commit.service
-        After=network-online.target
-        # We run before `zincati.service` to avoid conflicting rpm-ostree
-        # transactions.
-        Before=zincati.service
-        ConditionPathExists=!/var/lib/%N.stamp
-        [Install]
-        WantedBy=multi-user.target
-        [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-        ExecStart=rpm-ostree install --allow-inactive open-vm-tools langpacks-en
-        ExecStart=/bin/touch /var/lib/%N.stamp
-        ExecStart=/bin/systemctl --no-block reboot
+      contents_local: systemd/rpm-ostree-install-tools.service
     - name: docker-cleanup.service
       enabled: true
-      contents: |
-        [Unit]
-        Description=Clean up Docker
-        Documentation=https://docs.docker.com/engine/reference/commandline/system_prune/
-        Requires=network-online.target docker.service
-        After=network-online.target docker.service
-        [Install]
-        WantedBy=multi-user.target
-        [Service]
-        Type=oneshot
-        ExecStart=-/bin/docker system prune -f
+      contents_local: systemd/docker-cleanup.service
     - name: docker-app-network.service
       enabled: true
-      contents: |
-        [Unit]
-        Description=Docker application network
-        Documentation=https://docs.docker.com/engine/reference/commandline/network_create/
-        Requires=docker.service docker-cleanup.service
-        After=docker.service docker-cleanup.service
-        ConditionPathExists=/var/lib/rpm-ostree-install-tools.stamp
-        [Install]
-        WantedBy=multi-user.target
-        RequiredBy=docker-traefik.service
-        [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-        ExecStart=-/bin/docker network create --driver bridge --subnet=172.28.0.0/16 "${app_network}"
-    - name: docker-traefik.service
-      enabled: true
-      contents: |
-        [Unit]
-        Description=traefik in Docker
-        Documentation=https://docs.traefik.io
-        Requires=docker.service docker-app-network.service
-        After=docker.service docker-app-network.service
-        [Install]
-        WantedBy=multi-user.target
-        [Service]
-        TimeoutStartSec=600
-        ExecStartPre=/bin/docker pull "${traefik_container}"
-        ExecStartPre=-/bin/docker stop %N
-        ExecStartPre=-/bin/docker rm %N
-        ExecStart=/bin/docker run --name %N --hostname %N \
-          --network "${app_network}" \
-          --log-driver=journald \
-          --log-opt tag={{.Name}}/{{.ImageName}} \
-          -p 80:80 -p 443:443 -p 2022:2022 \
-          -v /var/app/traefik/traefik.toml:/etc/traefik/traefik.toml:Z \
-          -v /var/app/traefik/configuration:/configuration:z \
-          -v /var/app/data/certs:/certs:z \
-          -v /var/app/data/traefik/acme:/acme:Z \
-          "${traefik_container}"
-        ExecStop=/bin/docker stop %N
+      contents_local: systemd/docker-app-network.service
+    - name: docker-app.service
+      contents_local: docker-app.service
 passwd:
   users:
     - name: core
-      ssh_authorized_keys:
-        - insert your public key here # TODO insert your public SSH key here
+      ssh_authorized_keys_local:
+        - user/id_rsa.pub
+        - user/id_ed25519.pub

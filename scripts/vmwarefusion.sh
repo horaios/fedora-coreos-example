@@ -28,7 +28,6 @@ Available options:
 -p, --prefix           Prefix for the VM names for easier identification in VMWare Fusion, defaults to 'fcos-'
 -s, --stream           CoreOS stream, defaults to 'stable'
 -t, --tls-certs        Path to the Certificate Authority from where to copy the '$name.cert.pem' and '$name.key.pem' files
--u, --user-signing-key Path to the SSH User Signing Key
 EOF
 	exit
 }
@@ -51,11 +50,6 @@ cleanup() {
 			[[ $verbose == 1 ]] && msg "${message}"
 			rm -f "${tmpName}"
 		done
-		if [[ -n "${userSigningKey-}" ]] && [[ -f "${buInc}/ssh/${userSigningKey}" ]]; then
-			message=$(printf "Removing temporary SSH user signing certificate from '%s'\n" "${buInc}/ssh/${userSigningKey}")
-			[[ $verbose == 1 ]] && msg "${message}"
-			rm -f "${buInc}/ssh/${userSigningKey}"
-		fi
 
 		if [[ -n "${name}" ]]; then
 			for tmp in "${buInc}/certs/app"*; do
@@ -115,7 +109,6 @@ parse_params() {
 	prefix='fcos-'
 	stream='stable'
 	tlsCerts=''
-	userSigningKey=''
 	verbose=0
 
 	while :; do
@@ -162,10 +155,6 @@ parse_params() {
 			tlsCerts="${2-}"
 			shift
 			;;
-		-u | --user-signing-key)
-			userSigningKey="${2-}"
-			shift
-			;;
 		-?*) die "Unknown option: $1" ;;
 		*) break ;;
 		esac
@@ -190,14 +179,10 @@ bu=$(realpath --canonicalize-missing "${bu}")
 buDir=$(dirname "${bu}")
 buInc=$(realpath --canonicalize-missing "${buDir}/includes")
 commonConfig=$(realpath --canonicalize-missing "${buDir}/../common")
-signing_key=$(realpath --canonicalize-missing "${download}/fedora.asc")
+signing_key=$(realpath --canonicalize-missing "${download}/fedora.gpg")
 if [[ -n "${hostSigningKey-}" ]]; then
 	hostSigningKey=$(realpath --canonicalize-missing "${hostSigningKey}")
 	[[ ! -f "${hostSigningKey-}" ]] && die "Parameter 'host-signing-key' does not point to an existing SSH key file"
-fi
-if [[ -n "${userSigningKey-}" ]]; then
-	userSigningKey=$(realpath --canonicalize-missing "${userSigningKey}")
-	[[ ! -f "${userSigningKey-}" ]] && die "Parameter 'user-signing-key' does not point to an existing SSH key file"
 fi
 tlsCerts=$(realpath --canonicalize-missing "${tlsCerts}")
 stream_json=$(realpath --canonicalize-missing "${download}/${stream}.json")
@@ -205,6 +190,7 @@ ova_version=''
 ign_config=''
 ign_config_file=''
 
+[[ ! -f "${bu-}" ]] && die "Parameter 'bu-file' does not point to an existing location"
 [[ ! -d "${tlsCerts-}" ]] && die "Parameter 'tls-certs' does not point to an existing location"
 
 msg "Creating SSH Host Keys"
@@ -238,12 +224,6 @@ if [[ -n "${hostSigningKey-}" ]]; then
 	fi
 fi
 
-if [[ -n "${userSigningKey-}" ]]; then
-	message=$(printf "Temporarily copying SSH user signing certificate from '%s' to '%s'\n" "${userSigningKey}" "${buInc}/ssh")
-	msg "${message}"
-	cp -f "${userSigningKey}" "${buInc}/ssh"
-fi
-
 message=$(printf "Temporarily copying common config from '%s' to '%s'\n" "${commonConfig}" "${buInc}")
 msg "${message}"
 cp -fr "${commonConfig}/." "${buInc}"
@@ -275,18 +255,14 @@ if [[ $deploy == 1 ]]; then
 	if [[ ! -f "${signing_key}" ]]; then
 		message=$(printf "Downloading the Fedora signing key to '%s'" "${signing_key}")
 		msg "${message}"
-		curl --silent --show-error "https://getfedora.org/static/fedora.gpg" -o "${signing_key}"
-	fi
-
-	# Make the signing key useful for verification purposes
-	if [[ ! -f "${signing_key}.gpg" ]]; then
-		gpg --dearmor "${signing_key}"
+		curl --silent --show-error "https://getfedora.org/static/fedora.gpg" --output "${signing_key}"
+		gpg --import "${signing_key}"
 	fi
 
 	# Download the CoreOS VM description for the particular stream
 	message=$(printf "Downloading stream json to '%s'\n" "${stream_json}")
 	msg "${message}"
-	curl --silent --show-error "https://builds.coreos.fedoraproject.org/streams/${stream}.json" -o "${stream_json}"
+	curl --silent --show-error "https://builds.coreos.fedoraproject.org/streams/${stream}.json" --output "${stream_json}"
 
 	ova_version=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.release' "${stream_json}")
 	ova_url_location=$(jq --raw-output '.architectures.x86_64.artifacts.vmware.formats.ova.disk.location' "${stream_json}")
@@ -302,13 +278,13 @@ if [[ $deploy == 1 ]]; then
 	if [[ ! -f "${ova_file_path}" ]]; then
 		message=$(printf "Downloading CoreOS Version for stream '%s' with version '%s'\n" "${stream}" "${ova_version}")
 		msg "${message}"
-		curl --silent --show-error "${ova_url_location}" -o "${ova_file_path}"
-		curl --silent --show-error "${ova_url_signature}" -o "${ova_file_signature}"
+		curl --silent --show-error "${ova_url_location}" --output "${ova_file_path}"
+		curl --silent --show-error "${ova_url_signature}" --output "${ova_file_signature}"
 	fi
 
 	message=$(printf "Verifying signature for '%s'\n" "${ova_file_path}")
 	msg "${message}"
-	gpg --no-default-keyring --keyring "${signing_key}.gpg" --verify "${ova_file_signature}" "${ova_file_path}"
+	gpg --verify "${ova_file_signature}" "${ova_file_path}"
 
 	message=$(printf "Verifying checksum for '%s'\n" "${ova_file_path}")
 	msg "${message}"

@@ -6,6 +6,10 @@ on: [ push, pull_request ]
 permissions:
   contents: read
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -23,3 +27,24 @@ jobs:
           yamllint .
       - uses: bewuethr/shellcheck-action@v2
       - uses: DavidAnson/markdownlint-cli2-action@v9
+      - name: Install butane
+        run: |
+          curl --fail --silent --show-error \
+            --location "https://github.com/coreos/butane/releases/download/v${butane_version}/butane-x86_64-unknown-linux-gnu" \
+            --output "butane"
+          curl --fail --silent --show-error \
+            --location "https://github.com/coreos/butane/releases/download/v${butane_version}/butane-x86_64-unknown-linux-gnu.asc" \
+            --output "butane.asc"
+          curl --silent --show-error "https://getfedora.org/static/fedora.gpg" --output "fedora.gpg"
+          gpg --import "fedora.gpg"
+          gpg --verify "butane.asc" "butane"
+          mv "butane" "/usr/local/bin/butane"
+          chmod +x "/usr/local/bin/butane"
+        env:
+          butane_version: "0.18.0"
+      - name: Run butane
+        run: |
+          find . -type f -name "*.bu.yaml" -o -name "*.bu.yml" | while read -r file; do
+            echo "verifying ${file}"
+            ./scripts/test.sh --bu-file "${file}"
+          done

@@ -1,0 +1,203 @@
+# https://coreos.github.io/butane/specs/
+variant: fcos
+version: 1.5.0
+ignition:
+  security:
+    tls:
+      certificate_authorities:
+        - local: certs/ca.cert.pem
+storage:
+  # see https://coreos.github.io/ignition/operator-notes/#filesystem-reuse-semantics
+  # whether /dev/sd* or /dev/nvme* is to be used depends on the kind of block device
+  # see https://docs.fedoraproject.org/en-US/fedora-coreos/storage/#_referencing_block_devices_from_ignition
+  disks:
+    - device: /dev/sdb
+      wipe_table: false
+      partitions:
+        - size_mib: 0
+          start_mib: 0
+          label: docker
+          should_exist: true
+          wipe_partition_entry: false
+          number: 1
+          guid: 84c9b6d3-6df7-4abb-82a5-78fc3ed9569d
+    - device: /dev/sdc
+      wipe_table: false
+      partitions:
+        - size_mib: 0
+          start_mib: 0
+          label: app
+          should_exist: true
+          wipe_partition_entry: false
+          number: 1
+          guid: d85bbbb8-b085-4d91-b584-147224d1b091
+  # see https://coreos.github.io/ignition/operator-notes/#filesystem-reuse-semantics
+  filesystems:
+    - path: /var/lib/docker
+      device: /dev/disk/by-partlabel/docker
+      format: xfs
+      wipe_filesystem: false
+      with_mount_unit: true
+    - path: /var/app/data
+      device: /dev/disk/by-partlabel/app
+      format: xfs
+      wipe_filesystem: false
+      with_mount_unit: true
+  files:
+    # See https://github.com/coreos/fcct/issues/34#issuecomment-597958199
+    # See https://github.com/coreos/fedora-coreos-tracker/issues/333
+    - path: /etc/hostname
+      mode: 420
+      overwrite: true
+      contents:
+        inline: |
+          hello-world
+    # See https://developer.gnome.org/NetworkManager/stable/nm-settings-keyfile.html
+    # See https://developer.gnome.org/NetworkManager/stable/ref-settings.html
+    # See https://www.szakmeister.net/blog/2017/jun/1/static-ip-nmcli/
+    # TODO in case you want an _additional_ static IPv4 address, uncomment the following block
+#    - path: /etc/NetworkManager/system-connections/ens192.nmconnection
+#      mode: 0600
+#      overwrite: true
+#      contents:
+#        inline: |
+#          [connection]
+#          id=ens192
+#          type=ethernet
+#          interface-name=ens192
+#          [ipv4]
+#          addresses=192.168.1.9/24
+#          method=auto
+    - path: /etc/systemd/system.conf.d/10-default-env.conf
+      mode: 0644
+      contents:
+        local: systemd/default-environment.conf
+    - path: /etc/systemd/system.conf.d/11-default-env.conf
+      append:
+        - inline: |
+            [Manager]
+            DefaultEnvironment="app_name=hello-world"
+            DefaultEnvironment="app_container=mendhak/http-https-echo:29"
+            DefaultEnvironment="app_domain=hello-world.example.org"
+            DefaultEnvironment="app_domain_internal=hello-world.local"
+            DefaultEnvironment="traefik_container=traefik:2.9"
+    - path: /etc/zincati/config.d/51-rollout-wariness.toml
+      contents:
+        inline: |
+          [identity]
+          rollout_wariness = 0.5
+    - path: /etc/zincati/config.d/55-updates-strategy.toml
+      contents:
+        inline: |
+          [updates]
+          strategy = "periodic"
+          [[updates.periodic.window]]
+          days = [ "Sat", "Sun" ]
+          start_time = "22:30"
+          length_minutes = 60
+    - path: /etc/fedora-coreos-pinger/config.d/99-disable-reporting.toml
+      mode: 0644
+      contents:
+        inline: |
+          [reporting]
+          enabled = false
+    - path: /etc/locale.conf
+      mode: 0644
+      contents:
+        inline: |
+          LANG=en_US.UTF-8
+    - path: /etc/ssh/sshd_config.d/40-host-certificates.conf
+      mode: 0600
+      append:
+        - local: sshd_config.d/40-host-certificates.conf
+    - path: /etc/ssh/sshd_config.d/40-ssh-audit.conf
+      mode: 0600
+      append:
+        - local: sshd_config.d/40-ssh-audit.conf
+    - path: /etc/ssh/sshd_config.d/40-user-certificates.conf
+      mode: 0600
+      append:
+        - local: sshd_config.d/40-user-certificates.conf
+    - path: /etc/ssh/ssh_host_ecdsa_key
+      mode: 0600
+      append:
+        - local: ssh/ssh_host_ecdsa_key
+    - path: /etc/ssh/ssh_host_ecdsa_key-cert.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_ecdsa_key-cert.pub
+    - path: /etc/ssh/ssh_host_ecdsa_key.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_ecdsa_key.pub
+    - path: /etc/ssh/ssh_host_ed25519_key
+      mode: 0600
+      append:
+        - local: ssh/ssh_host_ed25519_key
+    - path: /etc/ssh/ssh_host_ed25519_key-cert.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_ed25519_key-cert.pub
+    - path: /etc/ssh/ssh_host_ed25519_key.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_ed25519_key.pub
+    - path: /etc/ssh/ssh_host_rsa_key
+      mode: 0600
+      append:
+        - local: ssh/ssh_host_rsa_key
+    - path: /etc/ssh/ssh_host_rsa_key-cert.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_rsa_key-cert.pub
+    - path: /etc/ssh/ssh_host_rsa_key.pub
+      mode: 0644
+      append:
+        - local: ssh/ssh_host_rsa_key.pub
+    # https://docs.fedoraproject.org/en-US/quick-docs/using-shared-system-certificates/
+    # https://docs.fedoraproject.org/en-US/fedora-coreos/storage/#_immutable_read_only_usr
+    - path: /etc/pki/ca-trust/source/anchors/root.local.pem
+      mode: 0644
+      overwrite: true
+      contents:
+        local: certs/ca.cert.pem
+    - path: /var/home/core/.bashrc.d/extra.sh
+      mode: 0644
+      append:
+        - local: user/bash_extra.sh
+    - path: /var/home/core/.inputrc
+      mode: 0644
+      contents:
+        local: user/.inputrc
+    - path: /var/home/core/.virc
+      mode: 0644
+      contents:
+        local: user/.virc
+  trees:
+    - path: /var/app/data/certs
+      local: certs
+    - path: /var/app/traefik
+      local: traefik
+systemd:
+  units:
+    - name: rpm-ostree-install-tools.service
+      enabled: true
+      contents_local: systemd/rpm-ostree-install-tools.service
+    - name: docker-cleanup.service
+      enabled: true
+      contents_local: systemd/docker-cleanup.service
+    - name: docker-app-network.service
+      enabled: true
+      contents_local: systemd/docker-app-network.service
+    - name: docker-app-ingress.service
+      enabled: true
+      contents_local: systemd/docker-app-ingress.service
+    - name: docker-app.service
+      enabled: true
+      contents_local: docker-app.service
+passwd:
+  users:
+    - name: core
+      ssh_authorized_keys_local:
+        - user/id_rsa.pub
+        - user/id_ed25519.pub
