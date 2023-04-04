@@ -120,7 +120,7 @@ export GOVC_USERNAME='username@vsphere.local'
 export GOVC_PASSWORD='password'
 
 ./scripts/deploy.sh -s stable -d ~/Downloads/coreos/ \
-  -n hello-world -b ./hello-world/hello-world.yaml \
+  -n hello-world -b ./hello-world/hello-world.bu.yaml \
   -t /Volumes/simple-ca/data/intermediate-ca-name \
   -g '/Volumes/simple-ca/data/ssh-ca/ca' -i 'sshpassword' \
   -o
