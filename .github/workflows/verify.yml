@@ -26,7 +26,7 @@ jobs:
           pip install yamllint
           yamllint .
       - uses: bewuethr/shellcheck-action@v2
-      - uses: DavidAnson/markdownlint-cli2-action@v10
+      - uses: DavidAnson/markdownlint-cli2-action@v11
       - name: Install butane
         run: |
           curl --fail --silent --show-error \
