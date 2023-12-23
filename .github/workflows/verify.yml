@@ -30,10 +30,10 @@ jobs:
       - name: Install butane
         run: |
           curl --fail --silent --show-error \
-            --location "https://github.com/coreos/butane/releases/download/v${butane_version}/butane-x86_64-unknown-linux-gnu" \
+            --location "https://github.com/coreos/butane/releases/download/${butane_version}/butane-x86_64-unknown-linux-gnu" \
             --output "butane"
           curl --fail --silent --show-error \
-            --location "https://github.com/coreos/butane/releases/download/v${butane_version}/butane-x86_64-unknown-linux-gnu.asc" \
+            --location "https://github.com/coreos/butane/releases/download/${butane_version}/butane-x86_64-unknown-linux-gnu.asc" \
             --output "butane.asc"
           curl --silent --show-error "https://fedoraproject.org/fedora.gpg" --output "fedora.gpg"
           gpg --import "fedora.gpg"
@@ -41,7 +41,7 @@ jobs:
           mv "butane" "/usr/local/bin/butane"
           chmod +x "/usr/local/bin/butane"
         env:
-          butane_version: "0.19.0"
+          butane_version: 'v0.19.0'
       - name: Run butane
         run: |
           find . -type f -name "*.bu.yaml" -o -name "*.bu.yml" | while read -r file; do
