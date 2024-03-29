@@ -5,7 +5,7 @@ Requires=docker.service docker-app.service
 After=docker.service docker-app.service
 
 [Service]
-Environment="app_ingress_container=traefik:2.10"
+Environment="app_ingress_container=traefik:2.11"
 TimeoutStartSec=600
 ExecStartPre=-/bin/docker pull "${app_ingress_container}"
 ExecStartPre=-/bin/docker stop %N

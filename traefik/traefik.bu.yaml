@@ -76,7 +76,7 @@ storage:
       append:
         - inline: |
             [Manager]
-            DefaultEnvironment="traefik_container=traefik:2.10"
+            DefaultEnvironment="traefik_container=traefik:2.11"
     - path: /etc/zincati/config.d/51-rollout-wariness.toml
       contents:
         inline: |

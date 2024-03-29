@@ -1,5 +1,5 @@
 [http.middlewares]
-	[http.middlewares.is-whitelisted.ipWhiteList]
+	[http.middlewares.is-whitelisted.IPAllowList]
 		sourceRange = ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 	[http.middlewares.compress-response.compress]
 	[http.middlewares.hsts.headers]
