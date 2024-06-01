@@ -78,9 +78,6 @@ storage:
       append:
         - inline: |
             [Manager]
-            DefaultEnvironment="etcd_cluster_state=new"
-            DefaultEnvironment="etcd_cluster_token=d18b3bf9-e6eb-4e99-8cde-ad498340c8ca"
-            DefaultEnvironment="etcd_peer_addresses=etcd-1=https://etcd-1.local:2380,etcd-2=https://etcd-2.local:2380,etcd-3=https://etcd-3.local:2380"
             DefaultEnvironment="app_name=etcd-3"
             DefaultEnvironment="app_domain_internal=etcd-3.local"
     - path: /etc/zincati/config.d/51-rollout-wariness.toml

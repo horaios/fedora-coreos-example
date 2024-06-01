@@ -5,6 +5,9 @@ Requires=docker.service docker-app-network.service
 After=docker.service docker-app-network.service
 
 [Service]
+Environment="etcd_cluster_state=new"
+Environment="etcd_cluster_token=d18b3bf9-e6eb-4e99-8cde-ad498340c8ca"
+Environment="etcd_peer_addresses=etcd-1=https://etcd-1.local:2380,etcd-2=https://etcd-2.local:2380,etcd-3=https://etcd-3.local:2380"
 Environment="etcd_peer_addresses=etcd-1=https://etcd-1.local:2380,etcd-2=https://etcd-2.local:2380,etcd-3=https://etcd-3.local:2380"
 TimeoutStartSec=600
 ExecStartPre=/bin/docker pull "${etcd_container}"
