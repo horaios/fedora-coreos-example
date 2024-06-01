@@ -94,10 +94,11 @@ The Butane configuration files contain pieces for the following tools alongside 
 **Note:** the VM configs contain references to additional disks in the `storage` section – they have to be removed in
 case you want to launch on VMWare Fusion (or Workstation). The OVA conversion doesn't account for them.
 
-1. Deploy the etcd cluster
+1. Deploy the etcd cluster after replacing the `CLUSTER_TOKEN_PLACEHOLDER` in the `docker-app.service` file located in
+  the `etcd/includes` directory.
 2. Once provisioning is finished and the VM started the second time (required for installing VMWare tools), log into
   each member machine and change the cluster state from `new` to `existing` in the systemd default environment found
-  in `/etc/systemd/system.conf.d/10-default-env.conf`
+  in the `docker-app.service` unit file.
 3. In the meanwhile you can deploy Traefik
 4. The base infrastructure should now be in place to add additional services, such as the `hello-world` example.
 
