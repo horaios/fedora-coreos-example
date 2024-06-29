@@ -61,14 +61,14 @@
 [http.routers]
 	[http.routers.traefik-api]
 		entryPoints = ["https"]
-		rule = "Host(`traefik`, `traefik.local`) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
+		rule = "(Host(`traefik`) || Host(`traefik.local`)) && (PathPrefix(`/api`) || PathPrefix(`/dashboard`))"
 		middlewares = ["is-whitelisted", "compress-response"]
 		service = "api@internal"
 		[http.routers.traefik-api.tls]
 			options = "intermediate@file"
 	[http.routers.traefik-metrics]
 		entryPoints = ["https"]
-		rule = "Host(`traefik`, `traefik.local`) && PathPrefix(`/metrics`)"
+		rule = "(Host(`traefik` || Host(`traefik.local`)) && PathPrefix(`/metrics`)"
 		middlewares = ["is-whitelisted", "compress-response"]
 		service = "prometheus@internal"
 		[http.routers.traefik-metrics.tls]
