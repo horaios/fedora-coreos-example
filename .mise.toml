@@ -3,6 +3,7 @@
 # See https://github.com/mise-plugins/registry for what is officially available
 # Everything else is just declared as a reference to keep track of it.
 [tools]
+	butane = "0.21.0"
 	editorconfig-checker = "3.0.3"
 	gitleaks = "8.18.4"
 	markdownlint-cli2 = "0.13.0"

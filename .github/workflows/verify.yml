@@ -55,15 +55,20 @@ jobs:
     if: ${{ inputs.butane || true }}
     steps:
       - uses: actions/checkout@v4
+      - name: Extract Tool Versions
+        id: tool-versions
+        run: |
+          butane_version=$(grep -F 'butane' .mise.toml | cut -d '=' -f2 | xargs)
+          echo "butane_version=${butane_version}" >> "$GITHUB_OUTPUT"
       - name: Install butane
         env:
-          BUTANE_VERSION: 'v0.20.0'
+          BUTANE_VERSION: ${{ steps.tool-versions.outputs.butane_version }}
         run: |
           curl --fail --silent --show-error \
-            --location "https://github.com/coreos/butane/releases/download/${BUTANE_VERSION}/butane-x86_64-unknown-linux-gnu" \
+            --location "https://github.com/coreos/butane/releases/download/v${BUTANE_VERSION}/butane-x86_64-unknown-linux-gnu" \
             --output "butane"
           curl --fail --silent --show-error \
-            --location "https://github.com/coreos/butane/releases/download/${BUTANE_VERSION}/butane-x86_64-unknown-linux-gnu.asc" \
+            --location "https://github.com/coreos/butane/releases/download/v${BUTANE_VERSION}/butane-x86_64-unknown-linux-gnu.asc" \
             --output "butane.asc"
           curl --silent --show-error "https://fedoraproject.org/fedora.gpg" --output "fedora.gpg"
           gpg --import "fedora.gpg"
