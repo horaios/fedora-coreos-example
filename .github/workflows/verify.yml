@@ -68,7 +68,7 @@ jobs:
           curl --silent --show-error "https://fedoraproject.org/fedora.gpg" --output "fedora.gpg"
           gpg --import "fedora.gpg"
           gpg --verify "butane.asc" "butane"
-          chmod +x "/usr/local/bin/butane"
+          chmod +x "butane"
           mv "butane" "/usr/local/bin/butane"
       - name: Run butane
         run: |
