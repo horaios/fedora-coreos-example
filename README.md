@@ -10,13 +10,12 @@ read by Traefik. On VM shutdown the information [is deleted](https://github.com/
 from etcd and Traefik stops serving traffic there.
 
 Each VM will be provisioned with [SSH certificates](https://smallstep.com/blog/use-ssh-certificates/) by default, the
-configuration can be extended with client certificates as
-outlined [here](https://github.com/coreos/butane/issues/210#issuecomment-824212588).
+configuration can be extended with client certificates as outlined [here](https://github.com/coreos/butane/issues/210#issuecomment-824212588).
 
 ---
 
-The shell script template used for the generator scripts is the MIT licensed
-[script-template.sh](https://gist.github.com/m-radzikowski/53e0b39e9a59a1518990e76c2bff8038) by Maciej Radzikowski.
+The shell script template used for the generator scripts is the MIT licensed [script-template.sh](https://gist.github.com/m-radzikowski/53e0b39e9a59a1518990e76c2bff8038)
+by Maciej Radzikowski.
 
 ## Required Software
 
@@ -72,8 +71,8 @@ PATH="/usr/local/opt/coreutils/libexec/gnubin:$PATH" ./scripts/deploy.sh
     otherwise you'll have to manually patch the bundled certificate bundle
   - make sure to use "Checkout as-is, commit as-is" to not break line endings of existing files
   - this includes a compatible curl, base64, GPG, and OpenSSH version by default
-- Instead of using the MinTTY console installed by Git consider
-  use [Windows Terminal](https://github.com/microsoft/terminal) instead for a better user experience
+- Instead of using the MinTTY console installed by Git consider use [Windows Terminal](https://github.com/microsoft/terminal)
+  instead for a better user experience
 - For a simple installation consider using [winget](https://learn.microsoft.com/en-us/windows/package-manager/winget/)
   - alternatively, you have to manually add _butane_, _govc_, and _jq_ to your `$PATH` environment variable
 
@@ -85,7 +84,7 @@ The Butane configuration files contain pieces for the following tools alongside 
 - [NetworkManager](https://developer.gnome.org/NetworkManager/stable/NetworkManager.html),
   [NetworkManager CLI Documentation](https://developer.gnome.org/NetworkManager/stable/nmcli.html)
 - [rpm-ostree](https://coreos.github.io/rpm-ostree/), [rpm-ostree manpage](https://www.mankier.com/1/rpm-ostree)
-- [SSH](https://docs.fedoraproject.org/en-US/fedora/rawhide/system-administrators-guide/infrastructure-services/OpenSSH/) <!-- markdownlint-disable-line MD013 --> <!-- editorconfig-checker-disable-line -->
+- [SSH](https://docs.fedoraproject.org/en-US/fedora/rawhide/system-administrators-guide/infrastructure-services/OpenSSH/)
 - [Systemd Unit](https://www.freedesktop.org/software/systemd/man/systemd.directives.html)
 - [Zincati](https://coreos.github.io/zincati/)
 

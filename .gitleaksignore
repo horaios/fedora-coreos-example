@@ -1,3 +1,5 @@
+# https://github.com/gitleaks/gitleaks
+
 # Finding acknowledged by Nikolas Grottendieck <git@nikolasgrottendieck.com> on 2024-08-23T22:06 as 'Other'
 # technically a valid app secret but just used as a dummy placeholder for local development
 b8d7a187d846584f53890a5d7d41a819703e20b8:etcd/includes/docker-app.service:generic-api-key:9

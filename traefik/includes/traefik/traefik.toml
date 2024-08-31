@@ -5,12 +5,12 @@
 [entryPoints]
 	[entryPoints.http]
 		address = ":80"
-	[entryPoints.http.http]
-		[entryPoints.http.http.redirections]
-			[entryPoints.http.http.redirections.entryPoint]
-				to = "https"
-				scheme = "https"
-				permanent = true
+		[entryPoints.http.http]
+			[entryPoints.http.http.redirections]
+				[entryPoints.http.http.redirections.entryPoint]
+					to = "https"
+					scheme = "https"
+					permanent = true
 	[entryPoints.https]
 		address = ":443"
 	[entryPoints.gitlab-ssh]
@@ -54,9 +54,9 @@
 
 [certificatesResolvers]
 	[certificatesResolvers.letsencrypt.acme]
-	# TODO remove the line below or change it to the production URL
-	caServer = "https://acme-staging-v02.api.letsencrypt.org/directory"
-	# TODO change the e-mail address before deploying
-	email = "webmaster@example.org"
-	storage = "/acme/acme.json"
-	[certificatesResolvers.letsencrypt.acme.tlsChallenge]
+		# TODO remove the line below or change it to the production URL
+		caServer = "https://acme-staging-v02.api.letsencrypt.org/directory"
+		# TODO change the e-mail address before deploying
+		email = "webmaster@example.org"
+		storage = "/acme/acme.json"
+		[certificatesResolvers.letsencrypt.acme.tlsChallenge]

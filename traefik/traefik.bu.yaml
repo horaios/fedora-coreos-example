@@ -56,18 +56,18 @@ storage:
     # See https://developer.gnome.org/NetworkManager/stable/ref-settings.html
     # See https://www.szakmeister.net/blog/2017/jun/1/static-ip-nmcli/
     # TODO in case you want an _additional_ static IPv4 address, uncomment the following block
-#    - path: /etc/NetworkManager/system-connections/ens192.nmconnection
-#      mode: 0600
-#      overwrite: true
-#      contents:
-#        inline: |
-#          [connection]
-#          id=ens192
-#          type=ethernet
-#          interface-name=ens192
-#          [ipv4]
-#          addresses=192.168.1.10/24
-#          method=auto
+    # - path: /etc/NetworkManager/system-connections/ens192.nmconnection
+    #   mode: 0600
+    #   overwrite: true
+    #   contents:
+    #     inline: |
+    #       [connection]
+    #       id=ens192
+    #       type=ethernet
+    #       interface-name=ens192
+    #       [ipv4]
+    #       addresses=192.168.1.11/24
+    #       method=auto
     - path: /etc/systemd/system.conf.d/10-default-env.conf
       mode: 0644
       contents:

@@ -24,7 +24,7 @@
 		accessControlAllowCredentials = true
 		#accessControlAllowHeaders = "*"
 		# See https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods
-		accessControlAllowMethods= ["GET", "HEAD", "OPTIONS", "POST", "PUT"]
+		accessControlAllowMethods = ["GET", "HEAD", "OPTIONS", "POST", "PUT"]
 		#accessControlAllowOriginList = []
 		accessControlMaxAge = 100
 	[http.middlewares.security-headers.headers]
@@ -36,11 +36,11 @@
 		permissionsPolicy = "accelerometer 'none'; ambient-light-sensor: 'none'; autoplay 'none'; battery 'none'; camera 'none'; display-capture 'none'; document-domain 'none'; encrypted-media 'none'; execution-while-not-rendered 'none'; execution-while-out-of-viewport 'none'; fullscreen 'self'; geolocation 'none'; gyroscope 'none'; layout-animations 'self'; legacy-image-formats 'self'; magnetometer 'none'; microphone 'none'; midi 'none'; navigation-override 'none'; oversized-images 'self'; payment 'none'; picture-in-picture 'self'; publickey-credentials-get 'self'; sync-xhr 'self'; usb 'none'; wake-lock 'none'; screen-wake-lock 'none'; web-share 'self'; xr-spatial-tracking 'none';"
 		#hostsProxyHeaders = ["X-Forwarded-For", "X-Forwarded-Host", "X-Forwarded-Port", "X-Forwarded-Proto"]
 		referrerPolicy = "strict-origin-when-cross-origin"
-	[http.middlewares.security-headers.headers.customResponseHeaders]
-		Server = ""
-		X-Powered-By = ""
-		X-Principal = ""
-		X-Application-Context = ""
+		[http.middlewares.security-headers.headers.customResponseHeaders]
+			Server = ""
+			X-Powered-By = ""
+			X-Principal = ""
+			X-Application-Context = ""
 	[http.middlewares.rate-limit-loose.rateLimit]
 		average = 200
 		burst = 10
@@ -52,11 +52,30 @@
 		burst = 20
 
 	[http.middlewares.internal-processing.chain]
-		middlewares = ["is-whitelisted", "hsts", "security-headers", "browser-compatibility", "no-robots", "compress-response"]
+		middlewares = [
+			"is-whitelisted",
+			"hsts",
+			"security-headers",
+			"browser-compatibility",
+			"no-robots",
+			"compress-response",
+		]
 	[http.middlewares.standard-processing.chain]
-		middlewares = ["hsts", "rate-limit-basic", "security-headers", "browser-compatibility", "compress-response"]
+		middlewares = [
+			"hsts",
+			"rate-limit-basic",
+			"security-headers",
+			"browser-compatibility",
+			"compress-response",
+		]
 	[http.middlewares.loose-processing.chain]
-		middlewares = ["hsts", "rate-limit-loose", "security-headers", "browser-compatibility", "compress-response"]
+		middlewares = [
+			"hsts",
+			"rate-limit-loose",
+			"security-headers",
+			"browser-compatibility",
+			"compress-response",
+		]
 
 [http.routers]
 	[http.routers.traefik-api]
