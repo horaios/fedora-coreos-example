@@ -58,7 +58,7 @@ jobs:
       - name: Extract Tool Versions
         id: tool-versions
         run: |
-          butane_version=$(grep -F 'butane' .mise.toml | cut -d '=' -f2 | xargs)
+          butane_version=$(grep -E 'butane = "v?[0-9]' .mise.toml | cut -d '=' -f2 | xargs)
           echo "butane_version=${butane_version}" >> "$GITHUB_OUTPUT"
       - name: Install butane
         env:
