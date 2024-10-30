@@ -117,15 +117,6 @@ jobs:
           echo "${GITLEAKS_SHASUM} gitleaks.tar.gz" | sha256sum --check
           tar -xzf gitleaks.tar.gz gitleaks
           ./gitleaks dir --verbose --redact .
-  hadolint:
-    runs-on: ubuntu-latest
-    if: ${{ inputs.hadolint || false }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: "Dockerfile"
   markdownlint:
     runs-on: ubuntu-latest
     if: ${{ inputs.markdownlint || true }}
