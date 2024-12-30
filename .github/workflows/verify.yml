@@ -122,7 +122,7 @@ jobs:
     if: ${{ inputs.markdownlint || true }}
     steps:
       - uses: actions/checkout@v4
-      - uses: DavidAnson/markdownlint-cli2-action@v18
+      - uses: DavidAnson/markdownlint-cli2-action@v19
   shellcheck:
     runs-on: ubuntu-latest
     if: ${{ inputs.shellcheck || true }}
