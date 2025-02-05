@@ -284,13 +284,14 @@ if [[ $deploy == 1 ]]; then
 
 	message=$(printf "Verifying signature for '%s'\n" "${ova_file_path}")
 	msg "${message}"
-	gpg --verify "${ova_file_signature}" "${ova_file_path}"
+	gpg --no-default-keyring --keyring "${signing_key}.gpg" --verify "${ova_file_signature}" "${ova_file_path}"
 
 	message=$(printf "Verifying checksum for '%s'\n" "${ova_file_path}")
 	msg "${message}"
 	message=$(printf "%s %s" "${ova_sha256}" "${ova_file_path}" | sha256sum --check)
 	msg "${message}"
-
+	message=$(printf "Latest CoreOS image available at: %s\n" "${ova_file_path}")
+	msg "${message}"
 	msg "\nIgnition configuration transpiled and CoreOS Template downloaded; will now deploy to VMWare Fusion\n\n"
 
 	message=$(printf "Deploying '%s' to '%s'\n" "${name}" "${library}")
