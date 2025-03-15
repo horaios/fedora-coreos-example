@@ -41,6 +41,12 @@ on:
 permissions:
   contents: read
 
+# Cancel duplicate runs for this workflow if they happen for the same commit
+# Thus should help with duplicate runs caused by PRs, e.g. because of Renovate
+concurrency:
+  group: ${{ github.workflow }}-${{ github.sha }}
+  cancel-in-progress: true
+
 jobs:
   butane:
     runs-on: ubuntu-latest
@@ -87,14 +93,14 @@ jobs:
           echo "ec_shasum=${ec_shasum}" >> "$GITHUB_OUTPUT"
       - name: Run EditorConfig Checker
         env:
-          EDITORCONFIG_VERSION: ${{ steps.tool-versions.outputs.ec_version }}
-          EDITORCONFIG_SHASUM: ${{ steps.tool-versions.outputs.ec_shasum }}
+          EDITORCONFIG_CHECKER_VERSION: ${{ steps.tool-versions.outputs.ec_version }}
+          EDITORCONFIG_CHECKER_SHASUM: ${{ steps.tool-versions.outputs.ec_shasum }}
         run: |
           curl --fail --silent --show-error --location --output editorconfig.tar.gz \
-            https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EDITORCONFIG_VERSION}/ec-linux-amd64.tar.gz
-          echo "${EDITORCONFIG_SHASUM} editorconfig.tar.gz" | sha256sum --check
+            https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v${EDITORCONFIG_CHECKER_VERSION}/ec-linux-amd64.tar.gz
+          echo "${EDITORCONFIG_CHECKER_SHASUM} editorconfig.tar.gz" | sha256sum --check
           tar -xzf editorconfig.tar.gz bin/ec-linux-amd64
-          ./bin/ec-linux-amd64 --exclude .git
+          ./bin/ec-linux-amd64 .
   gitleaks:
     runs-on: ubuntu-latest
     if: ${{ inputs.gitleaks || true }}
