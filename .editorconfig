@@ -35,6 +35,6 @@ trim_trailing_whitespace = false # Allow '  ' token for Markdown to create new l
 [*.{pub,secret}]
 insert_final_newline = false
 
-[*.{bu,json}]
+[*.ign.json]
 indent_style = space
 indent_size = 2

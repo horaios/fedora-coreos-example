@@ -1,9 +1,9 @@
 {
-  "cpu_cores": 2,
-  "ram": 4096,
-  "disks": {
-    "root": "20GB",
-    "docker": "20GB",
-    "data": "10GB"
-  }
+	"cpu_cores": 2,
+	"ram": 4096,
+	"disks": {
+		"root": "20GB",
+		"docker": "20GB",
+		"data": "10GB"
+	}
 }
