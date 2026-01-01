@@ -62,7 +62,7 @@ jobs:
       - name: Extract Tool Versions
         id: tool-versions
         run: |
-          butane_version=$(grep -E 'butane = "v?[0-9]' .mise.toml | cut -d '=' -f2 | xargs)
+          butane_version=$(grep -F 'butane' .mise.toml | cut -d '=' -f3 | cut -d '}' -f1 | xargs)
           echo "butane_version=${butane_version}" >> "$GITHUB_OUTPUT"
       - name: Install butane
         env:
@@ -180,8 +180,8 @@ jobs:
       - name: Extract Tool Versions
         id: tool-versions
         run: |
-          taplo_version=$(grep -F 'taplo' .mise.toml | grep -v 'asdf' | cut -d '=' -f2 | cut -d '#' -f1 | xargs)
-          taplo_shasum=$(grep -F 'taplo' .mise.toml | cut -d '=' -f3 | xargs)
+          taplo_version=$(grep -F 'taplo' .mise.toml | cut -d '=' -f3 | cut -d '}' -f1 | xargs)
+          taplo_shasum=$(grep -F 'taplo' .mise.toml | cut -d '=' -f4 | xargs)
           echo "taplo_version=${taplo_version}" >> "$GITHUB_OUTPUT"
           echo "taplo_shasum=${taplo_shasum}" >> "$GITHUB_OUTPUT"
       - name: Run Taplo
