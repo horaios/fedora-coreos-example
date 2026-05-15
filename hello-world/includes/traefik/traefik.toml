@@ -5,6 +5,7 @@
 [entryPoints]
 	[entryPoints.https]
 		address = ":443"
+
 	[entryPoints.statistics]
 		address = ":8080"
 
@@ -14,12 +15,16 @@
 
 [accessLog]
 	format = "json"
+
 	[accessLog.fields]
 		defaultMode = "keep"
+
 		[accessLog.fields.names]
 			"ClientUsername" = "drop"
+
 		[accessLog.fields.headers]
 			defaultMode = "keep"
+
 			[accessLog.fields.headers.names]
 				"Authorization" = "drop"
 

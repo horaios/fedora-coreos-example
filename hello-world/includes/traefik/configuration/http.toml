@@ -3,8 +3,10 @@
 		scheme = "https"
 		permanent = true
 		port = 443
+
 	[http.middlewares.is-whitelisted.IPAllowList]
 		sourceRange = ["127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
+
 	[http.middlewares.compress-response.compress]
 
 [http.routers]
@@ -13,13 +15,16 @@
 		rule = "PathPrefix(`/api`) || PathPrefix(`/dashboard`)"
 		middlewares = ["is-whitelisted", "compress-response"]
 		service = "api@internal"
+
 		[http.routers.traefik-api.tls]
 			options = "intermediate@file"
+
 	[http.routers.traefik-metrics]
 		entryPoints = ["statistics"]
 		rule = "PathPrefix(`/metrics`)"
 		middlewares = ["is-whitelisted", "compress-response"]
 		service = "prometheus@internal"
+
 		[http.routers.traefik-metrics.tls]
 			options = "intermediate@file"
 

@@ -5,14 +5,17 @@
 [entryPoints]
 	[entryPoints.http]
 		address = ":80"
+
 		[entryPoints.http.http]
 			[entryPoints.http.http.redirections]
 				[entryPoints.http.http.redirections.entryPoint]
 					to = "https"
 					scheme = "https"
 					permanent = true
+
 	[entryPoints.https]
 		address = ":443"
+
 	[entryPoints.gitlab-ssh]
 		address = ":2022"
 
@@ -22,12 +25,16 @@
 
 [accessLog]
 	format = "json"
+
 	[accessLog.fields]
 		defaultMode = "keep"
+
 		[accessLog.fields.names]
 			"ClientUsername" = "drop"
+
 		[accessLog.fields.headers]
 			defaultMode = "keep"
+
 			[accessLog.fields.headers.names]
 				"Authorization" = "drop"
 
@@ -44,8 +51,10 @@
 	[providers.file]
 		directory = "/configuration"
 		watch = true
+
 	[providers.etcd]
 		endpoints = ["etcd-1.local:2379", "etcd-2.local:2379", "etcd-3.local:2379"]
+
 		[providers.etcd.tls]
 			ca = "/certs/ca.cert.pem"
 			caOptional = false
@@ -59,4 +68,5 @@
 		# TODO change the e-mail address before deploying
 		email = "webmaster@example.org"
 		storage = "/acme/acme.json"
+
 		[certificatesResolvers.letsencrypt.acme.tlsChallenge]
