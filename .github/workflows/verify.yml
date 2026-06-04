@@ -227,7 +227,7 @@ jobs:
           tombi_shasum=$(grep -F 'tombi' .mise.toml | cut -d '=' -f4 | xargs)
           echo "tombi_version=${tombi_version}" >> "$GITHUB_OUTPUT"
           echo "tombi_shasum=${tombi_shasum}" >> "$GITHUB_OUTPUT"
-      - uses: tombi-toml/setup-tombi@v1
+      - uses: tombi-toml/setup-tombi@74c3f4f31e7915e27c3397831e4c628463e3e0da # v1.1.1
         with:
           version: ${{ steps.tool-versions.outputs.tombi_version }}
           checksum: ${{ steps.tool-versions.outputs.tombi_shasum }}
