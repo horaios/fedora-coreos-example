@@ -1,4 +1,13 @@
-# https://github.com/gitleaks/gitleaks
+# See https://github.com/betterleaks/betterleaks
+#
+# Before adding finding in this file consider adapting the config via
+# `.betterleaks.toml` and ensuring that false positives are not reported in the
+# first place.
+#
+# Additionally: revoke/rotate true positives (valid findings) before adding them
+# to this file. Otherwise you'll just be helping attackers by listing
+# potentially valid findings here for them to find instantly.
+#
 
 # Finding acknowledged by Nikolas Grottendieck <git@nikolasgrottendieck.com> on 2024-08-23T22:06 as 'Other'
 # technically a valid app secret but just used as a dummy placeholder for local development
@@ -21,4 +30,3 @@ b8d7a187d846584f53890a5d7d41a819703e20b8:etcd/includes/docker-app.service:generi
 # Finding acknowledged by Nikolas Grottendieck <git@nikolasgrottendieck.com> on 2024-08-23T22:06 as 'Other'
 # technically a valid app secret but just used as a dummy placeholder for local development
 0d2818c3f4f9aa8d9ffb7ca6465fa9f178d40170:etcd/etcd-3.yaml:generic-api-key:82
-
